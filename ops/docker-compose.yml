@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:3.2.0
+    container_name: os-dev
+    environment:
+      - cluster.name=os-dev
+      - node.name=os-dev-1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - DISABLE_INSTALL_DEMO_CONFIG=true    # <- recommended dev flag
+      - DISABLE_SECURITY_PLUGIN=true        # <- recommended dev flag
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile:  { soft: 65536, hard: 65536 }
+    volumes:
+      - ./data/os:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  dashboards:
+    image: opensearchproject/opensearch-dashboards:3.2.0
+    container_name: os-dash
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]   # http because security is disabled
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    ports:
+      - "5601:5601"
+    depends_on:
+      opensearch:
+        condition: service_healthy

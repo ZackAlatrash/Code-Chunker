@@ -1,0 +1,119 @@
+{
+  "version": "1.2",
+  "query": "How is authentication handled?",
+  "routed_repo_ids": [
+    "crunding-weather_foreca_proxy_service-8aae91880849"
+  ],
+  "repos": [
+    {
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "short_title": "crunding-weather_foreca_proxy_service-8aae91880849 (go)",
+      "summary": "Auto-synthesized router summary for crunding-weather_foreca_proxy_service-8aae91880849. Languages: go. Top modules: internal, pkg, cmd, main.go.",
+      "languages": [
+        "go"
+      ],
+      "key_modules": "internal, pkg, cmd, main.go",
+      "key_symbols": "weather, foreca, time, return, import, struct, error, mocks, package, string, new, get, type, func, condition, client, forecast, temperature, controller, service",
+      "tech_stack": "unknown",
+      "entrypoints": "unknown",
+      "domains": "unknown"
+    }
+  ],
+  "repo_guides": [
+    {
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "overview": "The crunding-weather_foreca_proxy_service repository is a Go-based service designed to proxy weather forecasts from the Foreca API. It includes modules for handling gRPC requests, interacting with external APIs, and managing caching and rate limiting. The primary entrypoint is `cmd/serve/grpc.go`, which sets up the gRPC server and integrates various middleware for logging, recovery, and tracing.",
+      "key_flows": "- The service uses gRPC to handle incoming weather forecast requests [cmd/serve/grpc.go:1-250].\n- External API interactions are managed through adapters in `internal/foreca/adapters/clients` [internal/foreca/adapters/clients/foreca_client_test.go:1-147, internal/foreca/adapters/clients/foreca_client.go:1-139].\n- Caching is implemented using Memcached and LRU cache for efficient data retrieval [pkg/cache/memcached.go, pkg/cache/errors.go].\n- Rate limiting is handled by the `ratelimit` package to prevent abuse of the external API [internal/foreca/service_test.go:1-200, pkg/ratelimit/mocks/limiter_mocks.go:1-50].",
+      "entrypoints": "cmd/serve/grpc.go, main.go, cmd/root.go",
+      "languages": [
+        "go"
+      ],
+      "modules": "internal, pkg, cmd"
+    }
+  ],
+  "sources": [
+    {
+      "idx": 1,
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "rel_path": "pkg/aws/client.go",
+      "start_line": 1,
+      "end_line": 15,
+      "chunk_number": 1,
+      "score": 0.5434319,
+      "code": "package aws\n\nimport (\n\tawsSdk \"github.com/aws/aws-sdk-go-v2/aws\"\n\t\"github.com/aws/aws-sdk-go-v2/service/dynamodb\"\n)\n\nfunc NewDynamoDbClientFromConfig(cfg awsSdk.Config) *dynamodb.Client {\n\treturn dynamodb.NewFromConfig(cfg)\n}\n\nfunc NewDynamoDbClient(accessKey, secretKey, sessionToken string, region string, endpoint string) *dynamodb.Client {\n\treturn NewDynamoDbClientFromConfig(GetConfig(accessKey, secretKey, sessionToken, region, endpoint))\n}\n"
+    },
+    {
+      "idx": 2,
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "rel_path": "pkg/aws/config.go",
+      "start_line": 1,
+      "end_line": 44,
+      "chunk_number": 1,
+      "score": 0.52479196,
+      "code": "package aws\n\nimport (\n\t\"context\"\n\n\tawsSdk \"github.com/aws/aws-sdk-go-v2/aws\"\n\tawsConfig \"github.com/aws/aws-sdk-go-v2/config\"\n\t\"github.com/aws/aws-sdk-go-v2/credentials\"\n)\n\nfunc GetConfig(accessKey, secretKey, sessionToken string, reg string, endpoint string) awsSdk.Config {\n\tendpointResolver := awsSdk.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (awsSdk.Endpoint, error) {\n\t\tif endpoint != \"\" {\n\t\t\treturn awsSdk.Endpoint{\n\t\t\t\tPartitionID:   \"aws\",\n\t\t\t\tURL:           endpoint,\n\t\t\t\tSigningRegion: reg,\n\t\t\t}, nil\n\t\t}\n\n\t\treturn awsSdk.Endpoint{}, &awsSdk.EndpointNotFoundError{}\n\t})\n\n\toptFns := []func(*awsConfig.LoadOptions) error{\n\t\tawsConfig.WithEndpointResolverWithOptions(endpointResolver),\n\t}\n\n\tif accessKey != \"\" || secretKey != \"\" || sessionToken != \"\" {\n\t\toptFns = append(optFns, awsConfig.WithCredentialsProvider(\n\t\t\tcredentials.NewStaticCredentialsProvider(\n\t\t\t\taccessKey, secretKey, sessionToken,\n\t\t\t),\n\t\t))\n\t}\n\n\tcfg, err := awsConfig.LoadDefaultConfig(context.TODO(), optFns...)\n\n\tif err != nil {\n\t\treturn awsSdk.Config{}\n\t}\n\n\treturn cfg\n}\n"
+    },
+    {
+      "idx": 3,
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "rel_path": "pkg/ratelimit/storage_memcached.go",
+      "start_line": 1,
+      "end_line": 55,
+      "chunk_number": 1,
+      "score": 0.5120435,
+      "code": "package ratelimit\n\nimport (\n\t\"bytes\"\n\t\"encoding/gob\"\n\t\"github.com/dropbox/godropbox/memcache\"\n\t\"time\"\n)\n\ntype MemcachedStorage struct {\n\tclient memcache.Client\n\tprefix string\n}\n\nfunc NewMemcachedStorage(client memcache.Client, prefix string) *MemcachedStorage {\n\treturn &MemcachedStorage{client, prefix}\n}\n\nfunc (ms *MemcachedStorage) Get(key string) (*TokenBucket, error) {\n\tvar err error\n\tresp := ms.client.Get(ms.prefix + key)\n\tif resp.Status() == memcache.StatusNoError || resp.Status() == memcache.StatusKeyNotFound {\n\t\treturn nil, nil\n\t} else if resp.Error() != nil {\n\t\treturn nil, resp.Error()\n\t}\n\n\tvar bucket = new(TokenBucket)\n\tdec := gob.NewDecoder(bytes.NewBuffer(resp.Value()))\n\terr = dec.Decode(bucket)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\treturn bucket, nil\n}\n\nfunc (ms *MemcachedStorage) Set(key string, bucket *TokenBucket, duration time.Duration) error {\n\tvar buffer = bytes.NewBuffer(nil)\n\tenc := gob.NewEncoder(buffer)\n\t_ = enc.Encode(bucket)\n\titem := &memcache.Item{\n\t\tKey:        ms.prefix + key,\n\t\tValue:      buffer.Bytes(),\n\t\tExpiration: uint32(duration.Seconds()),\n\t}\n\n\tresp := ms.client.Set(item)\n\treturn resp.Error()\n}\n\nfunc (ms *MemcachedStorage) Delete(key string) error {\n\tresp := ms.client.Delete(ms.prefix + key)\n\treturn resp.Error()\n}\n"
+    },
+    {
+      "idx": 4,
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "rel_path": "pkg/ratelimit/tokenbucket.go",
+      "start_line": 1,
+      "end_line": 48,
+      "chunk_number": 1,
+      "score": 0.49956286,
+      "code": "package ratelimit\n\nimport (\n\t\"errors\"\n\t\"time\"\n)\n\nvar (\n\tErrLimitReached = errors.New(\"limit reached\")\n)\n\ntype TokenBucket struct {\n\tUsed           float64\n\tLastAccessTime time.Time\n\tLimit          float64\n\tDuration       time.Duration\n}\n\nfunc NewTokenBucket(limit float64, duration time.Duration) *TokenBucket {\n\treturn &TokenBucket{0, time.Now(), limit, duration}\n}\n\nfunc (bucket *TokenBucket) Consume(count float64) error {\n\tnow := time.Now()\n\tused := bucket.GetAdjustedUsage(now)\n\n\tif used+count <= bucket.Limit {\n\t\tbucket.Used = used + count\n\t\tbucket.LastAccessTime = now\n\t\treturn nil\n\t}\n\n\treturn ErrLimitReached\n}\n\nfunc (bucket *TokenBucket) GetAdjustedUsage(now time.Time) float64 {\n\tused := bucket.Used\n\tif bucket.LastAccessTime.Unix() > 0 {\n\t\telapsed := now.Sub(bucket.LastAccessTime)\n\t\tback := bucket.Limit * float64(elapsed) / float64(bucket.Duration)\n\t\tused -= back\n\t\tif used < 0 {\n\t\t\tused = 0\n\t\t}\n\t}\n\treturn used\n}\n"
+    },
+    {
+      "idx": 5,
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "rel_path": "pkg/ratelimit/mocks/limiter_mocks.go",
+      "start_line": 148,
+      "end_line": 167,
+      "chunk_number": 2,
+      "score": 0.5019153,
+      "code": "// Get indicates an expected call of Get.\nfunc (mr *MockstorageMockRecorder) Get(arg0 any) *gomock.Call {\n\tmr.mock.ctrl.T.Helper()\n\treturn mr.mock.ctrl.RecordCallWithMethodType(mr.mock, \"Get\", reflect.TypeOf((*Mockstorage)(nil).Get), arg0)\n}\n\n// Set mocks base method.\nfunc (m *Mockstorage) Set(arg0 string, arg1 *ratelimit.TokenBucket, arg2 time.Duration) error {\n\tm.ctrl.T.Helper()\n\tret := m.ctrl.Call(m, \"Set\", arg0, arg1, arg2)\n\tret0, _ := ret[0].(error)\n\treturn ret0\n}\n\n// Set indicates an expected call of Set.\nfunc (mr *MockstorageMockRecorder) Set(arg0, arg1, arg2 any) *gomock.Call {\n\tmr.mock.ctrl.T.Helper()\n\treturn mr.mock.ctrl.RecordCallWithMethodType(mr.mock, \"Set\", reflect.TypeOf((*Mockstorage)(nil).Set), arg0, arg1, arg2)\n}\n"
+    }
+  ],
+  "diagnostics": {
+    "topic_terms": [
+      "auth",
+      "authenticate",
+      "authentication",
+      "authorization",
+      "authorise",
+      "authorize",
+      "login",
+      "logout",
+      "password",
+      "session",
+      "cookie",
+      "csrf",
+      "jwt",
+      "oauth",
+      "openid",
+      "api key",
+      "apikey",
+      "basic auth",
+      "bearer",
+      "token",
+      "refresh",
+      "idp",
+      "sso",
+      "rbac",
+      "acl"
+    ],
+    "router_repos": [
+      "crunding-weather_foreca_proxy_service-8aae91880849"
+    ]
+  },
+  "reason": ""
+}

@@ -1,0 +1,119 @@
+{
+  "version": "1.2",
+  "query": "How is authentication handled?",
+  "routed_repo_ids": [
+    "crunding-weather_forecasts_service-ff3f82fda128"
+  ],
+  "repos": [
+    {
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "short_title": "crunding-weather_forecasts_service-ff3f82fda128 (go)",
+      "summary": "Auto-synthesized router summary for crunding-weather_forecasts_service-ff3f82fda128. Languages: go. Top modules: internal, pkg, cmd, main.go.",
+      "languages": [
+        "go"
+      ],
+      "key_modules": "internal, pkg, cmd, main.go",
+      "key_symbols": "string, package, weather, get, type, message, func, code, response, float, error, float32, service, snow, new, return, temperature, String, forecasts, request",
+      "tech_stack": "unknown",
+      "entrypoints": "unknown",
+      "domains": "unknown"
+    }
+  ],
+  "repo_guides": [
+    {
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "overview": "The crunding-weather_forecasts_service-ff3f82fda128 repository is a Go-based service for fetching weather forecasts. It includes modules for handling HTTP requests, interacting with external services like Foreca, and managing translations. The primary entrypoint is `cmd/serve/http.go`, which sets up the HTTP server to handle incoming requests.",
+      "key_flows": "- The service fetches weather data from an external API using the `ForecaService` [internal/forecasts/adapters/foreca_service.go:1-121].\n- HTTP requests are handled by presenters that convert domain models into response formats [internal/forecasts/adapters/handlers/http/v0/presenters.go:1-209].\n- The service uses OpenTelemetry for tracing and logging to monitor and debug operations [internal/forecasts/adapters/foreca_service.go:1-121, pkg/xotel/tracer.go:1-58].",
+      "entrypoints": "cmd/serve/http.go, main.go",
+      "languages": [
+        "go"
+      ],
+      "modules": "internal, pkg, cmd"
+    }
+  ],
+  "sources": [
+    {
+      "idx": 1,
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "rel_path": "pkg/utilities/math.go",
+      "start_line": 1,
+      "end_line": 8,
+      "chunk_number": 1,
+      "score": 0.5394781,
+      "code": "package utilities\n\nimport \"math\"\n\nfunc RoundFloat32(in float32, precision int) float32 {\n\treturn float32(math.Round(float64(in)*math.Pow10(precision)) / math.Pow10(precision))\n}\n"
+    },
+    {
+      "idx": 2,
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "rel_path": "internal/forecasts/adapters/clients/locations/v0/location_grpc.pb.go",
+      "start_line": 127,
+      "end_line": 214,
+      "chunk_number": 2,
+      "score": 0.5388867,
+      "code": "\thandler := func(ctx context.Context, req interface{}) (interface{}, error) {\n\t\treturn srv.(LocationsServiceServer).Get(ctx, req.(*GetRequest))\n\t}\n\treturn interceptor(ctx, in, info, handler)\n}\n\nfunc _LocationsService_GetBatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {\n\tin := new(GetBatchRequest)\n\tif err := dec(in); err != nil {\n\t\treturn nil, err\n\t}\n\tif interceptor == nil {\n\t\treturn srv.(LocationsServiceServer).GetBatch(ctx, in)\n\t}\n\tinfo := &grpc.UnaryServerInfo{\n\t\tServer:     srv,\n\t\tFullMethod: \"/geo.locations.v0.LocationsService/GetBatch\",\n\t}\n\thandler := func(ctx context.Context, req interface{}) (interface{}, error) {\n\t\treturn srv.(LocationsServiceServer).GetBatch(ctx, req.(*GetBatchRequest))\n\t}\n\treturn interceptor(ctx, in, info, handler)\n}\n\nfunc _LocationsService_Nearest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {\n\tin := new(NearestRequest)\n\tif err := dec(in); err != nil {\n\t\treturn nil, err\n\t}\n\tif interceptor == nil {\n\t\treturn srv.(LocationsServiceServer).Nearest(ctx, in)\n\t}\n\tinfo := &grpc.UnaryServerInfo{\n\t\tServer:     srv,\n\t\tFullMethod: \"/geo.locations.v0.LocationsService/Nearest\",\n\t}\n\thandler := func(ctx context.Context, req interface{}) (interface{}, error) {\n\t\treturn srv.(LocationsServiceServer).Nearest(ctx, req.(*NearestRequest))\n\t}\n\treturn interceptor(ctx, in, info, handler)\n}\n\nfunc _LocationsService_BatchNearest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {\n\tin := new(BatchNearestRequest)\n\tif err := dec(in); err != nil {\n\t\treturn nil, err\n\t}\n\tif interceptor == nil {\n\t\treturn srv.(LocationsServiceServer).BatchNearest(ctx, in)\n\t}\n\tinfo := &grpc.UnaryServerInfo{\n\t\tServer:     srv,\n\t\tFullMethod: \"/geo.locations.v0.LocationsService/BatchNearest\",\n\t}\n\thandler := func(ctx context.Context, req interface{}) (interface{}, error) {\n\t\treturn srv.(LocationsServiceServer).BatchNearest(ctx, req.(*BatchNearestRequest))\n\t}\n\treturn interceptor(ctx, in, info, handler)\n}\n\n// LocationsService_ServiceDesc is the grpc.ServiceDesc for LocationsService service.\n// It's only intended for direct use with grpc.RegisterService,\n// and not to be introspected or modified (even as a copy)\nvar LocationsService_ServiceDesc = grpc.ServiceDesc{\n\tServiceName: \"geo.locations.v0.LocationsService\",\n\tHandlerType: (*LocationsServiceServer)(nil),\n\tMethods: []grpc.MethodDesc{\n\t\t{\n\t\t\tMethodName: \"Get\",\n\t\t\tHandler:    _LocationsService_Get_Handler,\n\t\t},\n\t\t{\n\t\t\tMethodName: \"GetBatch\",\n\t\t\tHandler:    _LocationsService_GetBatch_Handler,\n\t\t},\n\t\t{\n\t\t\tMethodName: \"Nearest\",\n\t\t\tHandler:    _LocationsService_Nearest_Handler,\n\t\t},\n\t\t{\n\t\t\tMethodName: \"BatchNearest\",\n\t\t\tHandler:    _LocationsService_BatchNearest_Handler,\n\t\t},\n\t},\n\tStreams:  []grpc.StreamDesc{},\n\tMetadata: \"location.proto\",\n}\n"
+    },
+    {
+      "idx": 3,
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "rel_path": "internal/forecasts/adapters/clients/locations/v0/location.pb.go",
+      "start_line": 193,
+      "end_line": 368,
+      "chunk_number": 2,
+      "score": 0.51728666,
+      "code": "func (x *GetBatchRequest) Reset() {\n\t*x = GetBatchRequest{}\n\tif protoimpl.UnsafeEnabled {\n\t\tmi := &file_location_proto_msgTypes[2]\n\t\tms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))\n\t\tms.StoreMessageInfo(mi)\n\t}\n}\n\nfunc (x *GetBatchRequest) String() string {\n\treturn protoimpl.X.MessageStringOf(x)\n}\n\nfunc (*GetBatchRequest) ProtoMessage() {}\n\nfunc (x *GetBatchRequest) ProtoReflect() protoreflect.Message {\n\tmi := &file_location_proto_msgTypes[2]\n\tif protoimpl.UnsafeEnabled && x != nil {\n\t\tms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))\n\t\tif ms.LoadMessageInfo() == nil {\n\t\t\tms.StoreMessageInfo(mi)\n\t\t}\n\t\treturn ms\n\t}\n\treturn mi.MessageOf(x)\n}\n\n// Deprecated: Use GetBatchRequest.ProtoReflect.Descriptor instead.\nfunc (*GetBatchRequest) Descriptor() ([]byte, []int) {\n\treturn file_location_proto_rawDescGZIP(), []int{2}\n}\n\nfunc (x *GetBatchRequest) GetIds() []int32 {\n\tif x != nil {\n\t\treturn x.Ids\n\t}\n\treturn nil\n}\n\ntype GetBatchResponse struct {\n\tstate         protoimpl.MessageState\n\tsizeCache     protoimpl.SizeCache\n\tunknownFields protoimpl.UnknownFields\n\n\tLocations []*Location `protobuf:\"bytes,1,rep,name=locations,proto3\" json:\"locations,omitempty\"`\n}\n\nfunc (x *GetBatchResponse) Reset() {\n\t*x = GetBatchResponse{}\n\tif protoimpl.UnsafeEnabled {\n\t\tmi := &file_location_proto_msgTypes[3]\n\t\tms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))\n\t\tms.StoreMessageInfo(mi)\n\t}\n}\n\nfunc (x *GetBatchResponse) String() string {\n\treturn protoimpl.X.MessageStringOf(x)\n}\n\nfunc (*GetBatchResponse) ProtoMessage() {}\n\nfunc (x *GetBatchResponse) ProtoReflect() protoreflect.Message {\n\tmi := &file_location_proto_msgTypes[3]\n\tif protoimpl.UnsafeEnabled && x != nil {\n\t\tms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))\n\t\tif ms.LoadMessageInfo() == nil {\n\t\t\tms.StoreMessageInfo(mi)\n\t\t}\n\t\treturn ms\n\t}\n\treturn mi.MessageOf(x)\n}\n\n// Deprecated: Use GetBatchResponse.ProtoReflect.Descriptor instead.\nfunc (*GetBatchResponse) Descriptor() ([]byte, []int) {\n\treturn file_location_proto_rawDescGZIP(), []int{3}\n}\n\nfunc (x *GetBatchResponse) GetLocations() []*Location {\n\tif x != nil {\n\t\treturn x.Locations\n\t}\n\treturn nil\n}\n\ntype BatchNearestRequest struct {\n\tstate         protoimpl.MessageState\n\tsizeCache     protoimpl.SizeCache\n\tunknownFields protoimpl.UnknownFields\n\n\tPoints []*BatchNearestRequest_Point `protobuf:\"bytes,1,rep,name=points,proto3\" json:\"points,omitempty\"`\n\tTypes  []Type                       `protobuf:\"varint,2,rep,packed,name=types,proto3,enum=geo.locations.v0.Type\" json:\"types,omitempty\"`\n}\n\nfunc (x *BatchNearestRequest) Reset() {\n\t*x = BatchNearestRequest{}\n\tif protoimpl.UnsafeEnabled {\n\t\tmi := &file_location_proto_msgTypes[4]\n\t\tms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))\n\t\tms.StoreMessageInfo(mi)\n\t}\n}\n\nfunc (x *BatchNearestRequest) String() string {\n\treturn protoimpl.X.MessageStringOf(x)\n}\n\nfunc (*BatchNearestRequest) ProtoMessage() {}\n\nfunc (x *BatchNearestRequest) ProtoReflect() protoreflect.Message {\n\tmi := &file_location_proto_msgTypes[4]\n\tif protoimpl.UnsafeEnabled && x != nil {\n\t\tms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))\n\t\tif ms.LoadMessageInfo() == nil {\n\t\t\tms.StoreMessageInfo(mi)\n\t\t}\n\t\treturn ms\n\t}\n\treturn mi.MessageOf(x)\n# …(trimmed)…"
+    },
+    {
+      "idx": 4,
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "rel_path": "internal/forecasts/adapters/clients/locations/v0/location.pb.go",
+      "start_line": 518,
+      "end_line": 665,
+      "chunk_number": 4,
+      "score": 0.5120351,
+      "code": "func (x *Location) String() string {\n\treturn protoimpl.X.MessageStringOf(x)\n}\n\nfunc (*Location) ProtoMessage() {}\n\nfunc (x *Location) ProtoReflect() protoreflect.Message {\n\tmi := &file_location_proto_msgTypes[8]\n\tif protoimpl.UnsafeEnabled && x != nil {\n\t\tms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))\n\t\tif ms.LoadMessageInfo() == nil {\n\t\t\tms.StoreMessageInfo(mi)\n\t\t}\n\t\treturn ms\n\t}\n\treturn mi.MessageOf(x)\n}\n\n// Deprecated: Use Location.ProtoReflect.Descriptor instead.\nfunc (*Location) Descriptor() ([]byte, []int) {\n\treturn file_location_proto_rawDescGZIP(), []int{8}\n}\n\nfunc (x *Location) GetId() int32 {\n\tif x != nil {\n\t\treturn x.Id\n\t}\n\treturn 0\n}\n\nfunc (x *Location) GetLatitude() float32 {\n\tif x != nil {\n\t\treturn x.Latitude\n\t}\n\treturn 0\n}\n\nfunc (x *Location) GetLongitude() float32 {\n\tif x != nil {\n\t\treturn x.Longitude\n\t}\n\treturn 0\n}\n\nfunc (x *Location) GetTimezone() string {\n\tif x != nil {\n\t\treturn x.Timezone\n\t}\n\treturn \"\"\n}\n\nfunc (x *Location) GetName() string {\n\tif x != nil {\n\t\treturn x.Name\n\t}\n\treturn \"\"\n}\n\nfunc (x *Location) GetCountryCode() string {\n\tif x != nil && x.CountryCode != nil {\n\t\treturn *x.CountryCode\n\t}\n\treturn \"\"\n}\n\nfunc (x *Location) GetCountryName() string {\n\tif x != nil && x.CountryName != nil {\n\t\treturn *x.CountryName\n\t}\n\treturn \"\"\n}\n\nfunc (x *Location) GetDivisionCode() string {\n\tif x != nil && x.DivisionCode != nil {\n\t\treturn *x.DivisionCode\n\t}\n\treturn \"\"\n}\n\nfunc (x *Location) GetDivisionName() string {\n\tif x != nil && x.DivisionName != nil {\n\t\treturn *x.DivisionName\n\t}\n\treturn \"\"\n}\n\nfunc (x *Location) GetSubdivisionCode() string {\n\tif x != nil && x.SubdivisionCode != nil {\n\t\treturn *x.SubdivisionCode\n\t}\n\treturn \"\"\n}\n\nfunc (x *Location) GetSubdivisionName() string {\n\tif x != nil && x.SubdivisionName != nil {\n\t\treturn *x.SubdivisionName\n\t}\n\treturn \"\"\n}\n\ntype BatchNearestRequest_Point struct {\n\tstate         protoimpl.MessageState\n\tsizeCache     protoimpl.SizeCache\n\tunknownFields protoimpl.UnknownFields\n\n\tLatitude  float32 `protobuf:\"fixed32,1,opt,name=latitude,proto3\" json:\"latitude,omitempty\"`\n\tLongitude float32 `protobuf:\"fixed32,2,opt,name=longitude,proto3\" json:\"longitude,omitempty\"`\n}\n\nfunc (x *BatchNearestRequest_Point) Reset() {\n\t*x = BatchNearestRequest_Point{}\n\tif protoimpl.UnsafeEnabled {\n\t\tmi := &file_location_proto_msgTypes[9]\n\t\tms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))\n\t\tms.StoreMessageInfo(mi)\n\t}\n}\n\nfunc (x *BatchNearestRequest_Point) String() string {\n\treturn protoimpl.X.MessageStringOf(x)\n# …(trimmed)…"
+    },
+    {
+      "idx": 5,
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "rel_path": "internal/forecasts/adapters/handlers/http/v0/nearest.go",
+      "start_line": 30,
+      "end_line": 124,
+      "chunk_number": 2,
+      "score": 0.51082414,
+      "code": "func (h *Handler) nearest(c *gin.Context) {\n\tlocale := i18n.GetLocaleFromHeader(c.GetHeader(\"Accept-Language\"))\n\n\tlog.Debug(c, \"Request detected locale.\", zap.String(\"locale\", locale.String()))\n\n\turi := nearestLocationForecastUriRequest{}\n\tif err := c.ShouldBindUri(&uri); err != nil {\n\t\tlog.Warn(c, \"Validation errors on URI.\", zap.Any(\"uri\", uri), zap.Error(err))\n\t\tmessage := i18n.GetFirstValidationErrorMessage(err)\n\n\t\tc.PureJSON(\n\t\t\thttp.StatusBadRequest,\n\t\t\thttpresponses.NewErrorResponse[*Response](\"invalid_parameters\", message),\n\t\t)\n\t\treturn\n\t}\n\n\treq := nearestLocationForecastRequest{\n\t\tHourlyHours: []string{\"*\"},\n\t}\n\n\tif err := c.ShouldBind(&req); err != nil {\n\t\tlog.Warn(c, \"Validation errors on request.\", zap.Any(\"request\", req))\n\n\t\tmessage := i18n.GetFirstValidationErrorMessage(err)\n\n\t\tc.PureJSON(\n\t\t\thttp.StatusBadRequest,\n\t\t\thttpresponses.NewErrorResponse[*Response](\"invalid_parameters\", message),\n\t\t)\n\t\treturn\n\t}\n\n\tif len(req.CurrentFields) == 0 && len(req.DailyFields) == 0 && len(req.HourlyFields) == 0 {\n\t\tlog.Warn(c, \"Invalid request.\", zap.Any(\"request\", req))\n\t\tc.JSON(http.StatusBadRequest, httpresponses.NewErrorResponse[*Response](\"invalid_parameters\", \"At least one of current[fields], daily[fields], or hourly[fields] must be present.\"))\n\t\treturn\n\t}\n\n\tcoord, err := uri.Coordinate.Parse()\n\tif err != nil {\n\t\tlog.Error(c, \"Cannot parse coordinate.\", zap.Any(\"uri\", uri))\n\n\t\tc.PureJSON(\n\t\t\thttp.StatusBadRequest,\n\t\t\thttpresponses.NewErrorResponse[*Location](\"invalid_parameters\", \"Cannot parse the provided coordinate.\"),\n\t\t)\n\t\treturn\n\t}\n\n\tforecast, location, err := h.forecasts.GetForecastForClosestLocation(c.Request.Context(), coord, locale)\n\tif err != nil {\n\t\tlog.Error(c, \"Something went wrong while retrieving the forecast for location.\", zap.Any(\"request\", req), zap.Error(err))\n\n\t\tif errors.Is(err, forecasts.ErrLocationNotFound) {\n\t\t\tc.JSON(\n\t\t\t\thttp.StatusNotFound,\n\t\t\t\thttpresponses.NewErrorResponse[*Response](\"not_found\", \"Location cannot be found.\"),\n\t\t\t)\n\t\t\treturn\n\t\t}\n\n\t\tc.JSON(\n\t\t\thttp.StatusInternalServerError,\n\t\t\thttpresponses.NewErrorResponse[*Response](\"internal_error\", \"Something went wrong. Retry later.\"),\n\t\t)\n\t\treturn\n\t}\n\n\tcurrentPresenter := NewCurrentConditionPresenter(req.CurrentFields, 2, req.DistanceUnit, req.TemperatureUnit, locale)\n\tdailyPresenter := NewDailyConditionPresenter(req.DailyFields, 2, *req.DailyDays, req.DistanceUnit, req.TemperatureUnit, locale)\n\thourlyPresenter := NewHourlyConditionPresenter(req.HourlyFields, 2, *req.HourlyDays, req.HourlyHours, req.DistanceUnit, req.TemperatureUnit, locale)\n\n\tloc, err := time.LoadLocation(location.Timezone)\n\tif err != nil {\n\t\tlog.Error(c, \"Cannot load timezone.\", zap.Any(\"req\", req), zap.Any(\"uri\", uri), zap.Error(err))\n\n\t\tc.JSON(\n\t\t\thttp.StatusInternalServerError,\n\t\t\thttpresponses.NewErrorResponse[*Response](\"internal_error\", \"Something went wrong. Retry later.\"),\n\t\t)\n\t\treturn\n\t}\n\n\tres := &Response{\n\t\tLocation: h.toLocationResource(location),\n\t\tForecast: &Forecast{\n\t\t\tCurrentCondition: currentPresenter.Present(forecast.CurrentCondition, loc),\n\t\t\tDailyConditions:  dailyPresenter.Present(forecast.DailyConditions, loc),\n\t\t\tHourlyConditions: hourlyPresenter.Present(forecast.HourlyConditions, loc),\n\t\t},\n\t}\n\tc.JSON(http.StatusOK, httpresponses.NewResponse(res, \"ok\", \"Forecasts retrieved.\"))\n}\n"
+    }
+  ],
+  "diagnostics": {
+    "topic_terms": [
+      "auth",
+      "authenticate",
+      "authentication",
+      "authorization",
+      "authorise",
+      "authorize",
+      "login",
+      "logout",
+      "password",
+      "session",
+      "cookie",
+      "csrf",
+      "jwt",
+      "oauth",
+      "openid",
+      "api key",
+      "apikey",
+      "basic auth",
+      "bearer",
+      "token",
+      "refresh",
+      "idp",
+      "sso",
+      "rbac",
+      "acl"
+    ],
+    "router_repos": [
+      "crunding-weather_forecasts_service-ff3f82fda128"
+    ]
+  },
+  "reason": "no_topic_evidence"
+}

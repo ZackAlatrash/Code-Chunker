@@ -1,0 +1,73 @@
+{
+  "version": "1.2",
+  "query": "HTTP server configuration",
+  "routed_repo_ids": [
+    "crunding-weather_forecasts_service-ff3f82fda128"
+  ],
+  "repos": [
+    {
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "short_title": "crunding-weather_forecasts_service-ff3f82fda128 (go)",
+      "summary": "Auto-synthesized router summary for crunding-weather_forecasts_service-ff3f82fda128. Languages: go. Top modules: internal, pkg, cmd, main.go.",
+      "languages": [
+        "go"
+      ],
+      "key_modules": "internal, pkg, cmd, main.go",
+      "key_symbols": "string, package, weather, get, type, message, func, code, response, float, error, float32, service, snow, new, return, temperature, String, forecasts, request",
+      "tech_stack": "unknown",
+      "entrypoints": "unknown",
+      "domains": "unknown"
+    }
+  ],
+  "repo_guides": [
+    {
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "overview": "The crunding-weather_forecasts_service-ff3f82fda128 repository is a Go-based service for fetching weather forecasts. It includes modules for handling HTTP requests, interacting with external services like Foreca, and managing translations. The primary entrypoint is `cmd/serve/http.go`, which sets up the HTTP server to handle incoming requests.",
+      "key_flows": "- The service fetches weather data from an external API using the `ForecaService` [internal/forecasts/adapters/foreca_service.go:1-121].\n- HTTP requests are handled by presenters that convert domain models into response formats [internal/forecasts/adapters/handlers/http/v0/presenters.go:1-209].\n- The service uses OpenTelemetry for tracing and logging to monitor and debug operations [internal/forecasts/adapters/foreca_service.go:1-121, pkg/xotel/tracer.go:1-58].",
+      "entrypoints": "cmd/serve/http.go, main.go",
+      "languages": [
+        "go"
+      ],
+      "modules": "internal, pkg, cmd"
+    }
+  ],
+  "sources": [
+    {
+      "idx": 1,
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "rel_path": "internal/forecasts/adapters/handlers/http/health.go",
+      "start_line": 1,
+      "end_line": 32,
+      "chunk_number": 1,
+      "score": 0.62206525,
+      "code": "package http\n\nimport (\n\t\"github.com/gin-gonic/gin\"\n\t\"go.impalastudios.com/weather/forecasts/pkg/httpresponses\"\n\t\"go.uber.org/zap\"\n\t\"net/http\"\n\t\"time\"\n)\n\ntype HealthHandler struct {\n\tlogger *zap.Logger\n}\n\nfunc NewHealthHandler(logger *zap.Logger) *HealthHandler {\n\treturn &HealthHandler{\n\t\tlogger: logger,\n\t}\n}\n\nfunc (h *HealthHandler) Register(g *gin.RouterGroup) {\n\tg.GET(\"/health\", h.health)\n}\n\nfunc (h *HealthHandler) health(c *gin.Context) {\n\tnow := time.Now().UTC().Format(time.RFC3339)\n\tc.PureJSON(\n\t\thttp.StatusOK,\n\t\thttpresponses.NewResponse[string](now, \"ok\", \"I'm healthy.\"),\n\t)\n}\n"
+    },
+    {
+      "idx": 2,
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "rel_path": "internal/forecasts/adapters/handlers/http/v0/single.go",
+      "start_line": 1,
+      "end_line": 119,
+      "chunk_number": 1,
+      "score": 0.57994235,
+      "code": "package v0\n\nimport (\n\t\"errors\"\n\t\"github.com/gin-gonic/gin\"\n\t\"go.impalastudios.com/log\"\n\t\"go.impalastudios.com/weather/forecasts/internal/forecasts\"\n\t\"go.impalastudios.com/weather/forecasts/pkg/httpresponses\"\n\t\"go.impalastudios.com/weather/forecasts/pkg/i18n\"\n\t\"go.uber.org/zap\"\n\t\"net/http\"\n\t\"strconv\"\n\t\"time\"\n)\n\ntype singleLocationForecastRequest struct {\n\tDailyFields     []string `form:\"daily[fields][]\" binding:\"omitempty,unique,star,dive,oneof=* temperature_min temperature_max precipitation snow wind_max humidity_average condition condition_night uv_index\"`\n\tDailyDays       *int     `form:\"daily[days],default=10\" binding:\"omitempty,min=1,max=10\"`\n\tHourlyFields    []string `form:\"hourly[fields][]\" binding:\"omitempty,unique,star,dive,oneof=* timestamp temperature temperature_feels_like precipitation snow wind pressure condition humidity uv_index\"`\n\tHourlyDays      *int     `form:\"hourly[days],default=10\" binding:\"omitempty,min=1,max=10\"`\n\tHourlyHours     []string `form:\"hourly[hours][]\" binding:\"omitempty,unique,star,dive,oneof=* 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23\"`\n\tCurrentFields   []string `form:\"current[fields][]\" binding:\"omitempty,unique,star,dive,oneof=* condition uv_index temperature temperature_feels_like heat_index dew_point visibility pressure wind humidity precipitation\"`\n\tDistanceUnit    string   `form:\"distanceUnit,default=km\" binding:\"omitempty,oneof=km mi\"`\n\tTemperatureUnit string   `form:\"temperatureUnit,default=C\" binding:\"omitempty,oneof=C F\"`\n}\n\nfunc (h *Handler) single(c *gin.Context) {\n\tlocale := i18n.GetLocaleFromHeader(c.GetHeader(\"Accept-Language\"))\n\n\tlog.Debug(c, \"Request detected locale.\", zap.String(\"locale\", locale.String()))\n\n\tpathId := c.Param(\"id\")\n\tid, err := strconv.Atoi(pathId)\n\tif err != nil {\n\t\tlog.Warn(c, \"Cannot parse ID.\", zap.String(\"id\", pathId), zap.Error(err))\n\n\t\tc.JSON(\n\t\t\thttp.StatusBadRequest,\n\t\t\thttpresponses.NewErrorResponse[*Response](\"invalid_parameters\", \"The location ID is invalid.\"),\n\t\t)\n\t\treturn\n\t}\n\n\trequest := singleLocationForecastRequest{\n\t\tHourlyHours: []string{\"*\"},\n\t}\n\n\tif err = c.ShouldBind(&request); err != nil {\n\t\tlog.Warn(c, \"Validation errors.\", zap.Error(err))\n\n\t\tmessage := i18n.GetFirstValidationErrorMessage(err)\n\n\t\tc.PureJSON(\n\t\t\thttp.StatusBadRequest,\n\t\t\thttpresponses.NewErrorResponse[*Location](\"invalid_parameters\", message),\n\t\t)\n\t\treturn\n\t}\n\n\tif len(request.CurrentFields) == 0 && len(request.DailyFields) == 0 && len(request.HourlyFields) == 0 {\n\t\tlog.Debug(c, \"current[fields], daily[fields], and hourly[fields] cannot be null at the same time.\", zap.Any(\"request\", request))\n\t\tc.JSON(\n\t\t\thttp.StatusBadRequest,\n\t\t\thttpresponses.NewErrorResponse[*Response](\"invalid_parameters\", \"At least one of current[fields], daily[fields], or hourly[fields] must be present.\"),\n\t\t)\n\n\t\treturn\n\t}\n\n\tforecast, location, err := h.forecasts.GetForecastsForLocation(c.Request.Context(), id, locale)\n\n\tif err != nil {\n\t\tlog.Error(c, \"Something went wrong while retrieving the forecast for location.\", zap.Any(\"request\", request), zap.Int(\"location_id\", id), zap.Error(err))\n\n\t\tif errors.Is(err, forecasts.ErrLocationNotFound) {\n\t\t\tc.JSON(\n\t\t\t\thttp.StatusNotFound,\n\t\t\t\thttpresponses.NewErrorResponse[*Response](\"not_found\", \"Location cannot be found.\"),\n\t\t\t)\n\t\t\treturn\n\t\t}\n\n\t\tc.JSON(\n\t\t\thttp.StatusInternalServerError,\n\t\t\thttpresponses.NewErrorResponse[*Response](\"internal_error\", \"Something went wrong. Retry later.\"),\n\t\t)\n\t\treturn\n\t}\n\n\tcurrentPresenter := NewCurrentConditionPresenter(request.CurrentFields, 2, request.DistanceUnit, request.TemperatureUnit, locale)\n\tdailyPresenter := NewDailyConditionPresenter(request.DailyFields, 2, *request.DailyDays, request.DistanceUnit, request.TemperatureUnit, locale)\n\thourlyPresenter := NewHourlyConditionPresenter(request.HourlyFields, 2, *request.HourlyDays, request.HourlyHours, request.DistanceUnit, request.TemperatureUnit, locale)\n\n\tloc, err := time.LoadLocation(location.Timezone)\n\tif err != nil {\n\t\tlog.Error(c, \"Cannot load timezone.\", zap.Int(\"id\", id), zap.Any(\"request\", request), zap.Error(err))\n\n\t\tc.JSON(\n\t\t\thttp.StatusInternalServerError,\n\t\t\thttpresponses.NewErrorResponse[*Response](\"internal_error\", \"Something went wrong. Retry later.\"),\n\t\t)\n\t\treturn\n\t}\n\n\tres := &Response{\n\t\tLocation: h.toLocationResource(location),\n\t\tForecast: &Forecast{\n\t\t\tCurrentCondition: currentPresenter.Present(forecast.CurrentCondition, loc),\n\t\t\tDailyConditions:  dailyPresenter.Present(forecast.DailyConditions, loc),\n\t\t\tHourlyConditions: hourlyPresenter.Present(forecast.HourlyConditions, loc),\n\t\t},\n\t}\n\n\tc.JSON(\n\t\thttp.StatusOK,\n\t\thttpresponses.NewResponse[*Response](res, \"ok\", \"Forecast retrieved.\"),\n\t)\n}\n"
+    },
+    {
+      "idx": 3,
+      "repo_id": "crunding-weather_forecasts_service-ff3f82fda128",
+      "rel_path": "pkg/httpresponses/response.go",
+      "start_line": 1,
+      "end_line": 63,
+      "chunk_number": 1,
+      "score": 0.6139243,
+      "code": "package httpresponses\n\n// Pagination represents the pagination metadata\ntype Pagination struct {\n\tLimit int     `json:\"limit\"`\n\tNext  *string `json:\"next\"`\n}\n\n// Metadata contains the information about the response\ntype Metadata struct {\n\tCode       string      `json:\"code\"`\n\tMessage    string      `json:\"message\"`\n\tPagination *Pagination `json:\"pagination,omitempty\"`\n}\n\n// Response is the http response format\ntype Response[T any] struct {\n\tMetadata Metadata `json:\"meta\"`\n\tData     T        `json:\"data\"`\n}\n\n// NewResponse creates a new response\nfunc NewResponse[T any](data T, code string, message string) *Response[T] {\n\treturn &Response[T]{\n\t\tMetadata: Metadata{\n\t\t\tCode:    code,\n\t\t\tMessage: message,\n\t\t},\n\t\tData: data,\n\t}\n}\n\n// NewPaginatedResponse creates a new paginated response\nfunc NewPaginatedResponse[T any](data T, code, message string, limit int, nextPageToken *string) *Response[T] {\n\treturn &Response[T]{\n\t\tMetadata: Metadata{\n\t\t\tCode:    code,\n\t\t\tMessage: message,\n\t\t\tPagination: &Pagination{\n\t\t\t\tLimit: limit,\n\t\t\t\tNext:  nextPageToken,\n\t\t\t},\n\t\t},\n\t\tData: data,\n\t}\n}\n\n// NewErrorResponse creates a new error response\nfunc NewErrorResponse[T any](code string, message string) *Response[T] {\n\treturn &Response[T]{\n\t\tMetadata: Metadata{\n\t\t\tCode:    code,\n\t\t\tMessage: message,\n\t\t},\n\t\tData: getZero[T](),\n\t}\n}\n\nfunc getZero[T any]() T {\n\tvar z T\n\treturn z\n}\n"
+    }
+  ],
+  "diagnostics": {
+    "topic_terms": [],
+    "router_repos": [
+      "crunding-weather_forecasts_service-ff3f82fda128"
+    ]
+  },
+  "reason": ""
+}

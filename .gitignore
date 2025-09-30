@@ -15,3 +15,4 @@ env/
 ops/data/
 # OS files
 .DS_Store
+backend_venv/

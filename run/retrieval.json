@@ -1,0 +1,139 @@
+{
+  "version": "1.2",
+  "query": "explain fetchSystems in beszel",
+  "routed_repo_ids": [
+    "beszel-main"
+  ],
+  "repos": [
+    {
+      "repo_id": "beszel-main",
+      "short_title": "beszel-main",
+      "summary": "A comprehensive codebase for a system monitoring and management application, featuring real-time data visualization, alerts, and user settings.",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "key_modules": "",
+      "key_symbols": "react, string, get, system, error, defer, icon, lingui, const, records, data, create, rounded, value, func, testing, content, use, new, record, text, number, github, key, agent, state, button, export, keys, set, user, bool, type",
+      "tech_stack": "React, TypeScript, Go, TanStack Table, LinguiJS, D3.js",
+      "entrypoints": "",
+      "domains": ""
+    }
+  ],
+  "repo_guides": [
+    {
+      "repo_id": "beszel-main",
+      "overview": "The beszel-main repository is a multi-language project with TypeScript, Go, and CSS. It includes modules for both frontend (src) and backend (agent). The primary entrypoints are the system routes in the frontend and agent connection tests in the backend. The frontend uses React and various UI components to display system data and manage settings, while the backend handles agent connections and system management.",
+      "key_flows": "- The frontend fetches system data from the backend using API calls [src/site/src/components/routes/system.tsx:10-20].\n- System status is displayed in a table with interactive columns [src/site/src/components/systems-table/systems-table.tsx:10-30].\n- Agent connections are tested and managed through Go unit tests [src/hub/agent_connect_test.go:10-40].\n- The backend uses gRPC for communication with agents [agent/agent.go:10-20].\n- System data is stored and retrieved using a database [src/hub/systems/system_manager.go:10-20].",
+      "entrypoints": "src/site/src/components/routes/system.tsx, src/hub/agent_connect_test.go, src/site/src/components/systems-table/systems-table.tsx, agent/sensors_test.go, src/site/src/components/routes/settings/alerts-history-data-table.tsx",
+      "languages": [
+        "typescript",
+        "css",
+        "go"
+      ],
+      "modules": "src, agent"
+    }
+  ],
+  "sources": [
+    {
+      "idx": 1,
+      "repo_id": "beszel-main",
+      "rel_path": "beszel.go",
+      "start_line": 1,
+      "end_line": 11,
+      "chunk_number": 1,
+      "score": 0.0,
+      "code": "package beszel\n\nimport \"github.com/blang/semver\"\n\nconst (\n\tVersion = \"0.12.7\"\n\tAppName = \"beszel\"\n)\n\nvar MinVersionCbor = semver.MustParse(\"0.12.0\")\n"
+    },
+    {
+      "idx": 2,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/agent_cache_test.go",
+      "start_line": 1,
+      "end_line": 16,
+      "chunk_number": 1,
+      "score": 0.0,
+      "code": "//go:build testing\n// +build testing\n\npackage agent\n\nimport (\n\t\"testing\"\n\t\"testing/synctest\"\n\t\"time\"\n\n\t\"github.com/henrygd/beszel/src/entities/system\"\n\n\t\"github.com/stretchr/testify/assert\"\n\t\"github.com/stretchr/testify/require\"\n)\n"
+    },
+    {
+      "idx": 3,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/disk.go",
+      "start_line": 1,
+      "end_line": 15,
+      "chunk_number": 1,
+      "score": 0.0,
+      "code": "package agent\n\nimport (\n\t\"log/slog\"\n\t\"os\"\n\t\"path/filepath\"\n\t\"runtime\"\n\t\"strings\"\n\t\"time\"\n\n\t\"github.com/henrygd/beszel/src/entities/system\"\n\n\t\"github.com/shirou/gopsutil/v4/disk\"\n)\n"
+    },
+    {
+      "idx": 4,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/system.go",
+      "start_line": 1,
+      "end_line": 23,
+      "chunk_number": 1,
+      "score": 0.0,
+      "code": "package agent\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"log/slog\"\n\t\"os\"\n\t\"strconv\"\n\t\"strings\"\n\t\"time\"\n\n\t\"github.com/henrygd/beszel\"\n\t\"github.com/henrygd/beszel/agent/battery\"\n\t\"github.com/henrygd/beszel/src/entities/system\"\n\n\t\"github.com/shirou/gopsutil/v4/cpu\"\n\t\"github.com/shirou/gopsutil/v4/disk\"\n\t\"github.com/shirou/gopsutil/v4/host\"\n\t\"github.com/shirou/gopsutil/v4/load\"\n\t\"github.com/shirou/gopsutil/v4/mem\"\n\tpsutilNet \"github.com/shirou/gopsutil/v4/net\"\n)\n"
+    },
+    {
+      "idx": 5,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/sensors.go",
+      "start_line": 1,
+      "end_line": 27,
+      "chunk_number": 1,
+      "score": 0.0,
+      "code": "package agent\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"log/slog\"\n\t\"path\"\n\t\"runtime\"\n\t\"strconv\"\n\t\"strings\"\n\t\"unicode/utf8\"\n\n\t\"github.com/henrygd/beszel/src/entities/system\"\n\n\t\"github.com/shirou/gopsutil/v4/common\"\n\t\"github.com/shirou/gopsutil/v4/sensors\"\n)\n\ntype SensorConfig struct {\n\tcontext        context.Context\n\tsensors        map[string]struct{}\n\tprimarySensor  string\n\tisBlacklist    bool\n\thasWildcards   bool\n\tskipCollection bool\n}\n"
+    },
+    {
+      "idx": 6,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/update.go",
+      "start_line": 52,
+      "end_line": 59,
+      "chunk_number": 3,
+      "score": 0.0,
+      "code": "func (f *freeBSDRestarter) Restart() error {\n\tif err := exec.Command(f.cmd, \"beszel-agent\", \"status\").Run(); err != nil {\n\t\treturn nil\n\t}\n\tghupdate.ColorPrint(ghupdate.ColorYellow, \"Restarting beszel-agent via FreeBSD rc…\")\n\treturn exec.Command(f.cmd, \"beszel-agent\", \"restart\").Run()\n}\n"
+    },
+    {
+      "idx": 7,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/server.go",
+      "start_line": 1,
+      "end_line": 23,
+      "chunk_number": 1,
+      "score": 0.0,
+      "code": "package agent\n\nimport (\n\t\"encoding/json\"\n\t\"errors\"\n\t\"fmt\"\n\t\"io\"\n\t\"log/slog\"\n\t\"net\"\n\t\"os\"\n\t\"strings\"\n\t\"time\"\n\n\t\"github.com/henrygd/beszel\"\n\t\"github.com/henrygd/beszel/src/common\"\n\t\"github.com/henrygd/beszel/src/entities/system\"\n\n\t\"github.com/blang/semver\"\n\t\"github.com/fxamacker/cbor/v2\"\n\t\"github.com/gliderlabs/ssh\"\n\tgossh \"golang.org/x/crypto/ssh\"\n)\n"
+    },
+    {
+      "idx": 8,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/update.go",
+      "start_line": 32,
+      "end_line": 51,
+      "chunk_number": 2,
+      "score": 0.0,
+      "code": "func (o *openRCRestarter) Restart() error {\n\tif err := exec.Command(o.cmd, \"status\", \"beszel-agent\").Run(); err != nil {\n\t\treturn nil\n\t}\n\tghupdate.ColorPrint(ghupdate.ColorYellow, \"Restarting beszel-agent via OpenRC…\")\n\treturn exec.Command(o.cmd, \"restart\", \"beszel-agent\").Run()\n}\n\ntype openWRTRestarter struct{ cmd string }\n\nfunc (w *openWRTRestarter) Restart() error {\n\tif err := exec.Command(w.cmd, \"running\", \"beszel-agent\").Run(); err != nil {\n\t\treturn nil\n\t}\n\tghupdate.ColorPrint(ghupdate.ColorYellow, \"Restarting beszel-agent via procd…\")\n\treturn exec.Command(w.cmd, \"restart\", \"beszel-agent\").Run()\n}\n\ntype freeBSDRestarter struct{ cmd string }\n"
+    },
+    {
+      "idx": 9,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/docker.go",
+      "start_line": 1,
+      "end_line": 22,
+      "chunk_number": 1,
+      "score": 0.0,
+      "code": "package agent\n\nimport (\n\t\"bytes\"\n\t\"context\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"log/slog\"\n\t\"net\"\n\t\"net/http\"\n\t\"net/url\"\n\t\"os\"\n\t\"strings\"\n\t\"sync\"\n\t\"time\"\n\n\t\"github.com/henrygd/beszel/src/entities/container\"\n\n\t\"github.com/blang/semver\"\n)\n\ntype dockerManager struct {"
+    },
+    {
+      "idx": 10,
+      "repo_id": "beszel-main",
+      "rel_path": "agent/system.go",
+      "start_line": 24,
+      "end_line": 70,
+      "chunk_number": 2,
+      "score": 0.0,
+      "code": "// Sets initial / non-changing values about the host system\nfunc (a *Agent) initializeSystemInfo() {\n\ta.systemInfo.AgentVersion = beszel.Version\n\ta.systemInfo.Hostname, _ = os.Hostname()\n\n\tplatform, _, version, _ := host.PlatformInformation()\n\n\tif platform == \"darwin\" {\n\t\ta.systemInfo.KernelVersion = version\n\t\ta.systemInfo.Os = system.Darwin\n\t} else if strings.Contains(platform, \"indows\") {\n\t\ta.systemInfo.KernelVersion = strings.Replace(platform, \"Microsoft \", \"\", 1) + \" \" + version\n\t\ta.systemInfo.Os = system.Windows\n\t} else if platform == \"freebsd\" {\n\t\ta.systemInfo.Os = system.Freebsd\n\t\ta.systemInfo.KernelVersion = version\n\t} else {\n\t\ta.systemInfo.Os = system.Linux\n\t}\n\n\tif a.systemInfo.KernelVersion == \"\" {\n\t\ta.systemInfo.KernelVersion, _ = host.KernelVersion()\n\t}\n\n\t// cpu model\n\tif info, err := cpu.Info(); err == nil && len(info) > 0 {\n\t\ta.systemInfo.CpuModel = info[0].ModelName\n\t}\n\t// cores / threads\n\ta.systemInfo.Cores, _ = cpu.Counts(false)\n\tif threads, err := cpu.Counts(true); err == nil {\n\t\tif threads > 0 && threads < a.systemInfo.Cores {\n\t\t\t// in lxc logical cores reflects container limits, so use that as cores if lower\n\t\t\ta.systemInfo.Cores = threads\n\t\t} else {\n\t\t\ta.systemInfo.Threads = threads\n\t\t}\n\t}\n\n\t// zfs\n\tif _, err := getARCSize(); err != nil {\n\t\tslog.Debug(\"Not monitoring ZFS ARC\", \"err\", err)\n\t} else {\n\t\ta.zfs = true\n\t}\n}\n"
+    }
+  ]
+}

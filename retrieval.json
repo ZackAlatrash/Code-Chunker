@@ -1,0 +1,52 @@
+{
+  "version": "1.2",
+  "query": "HTTP proxy server",
+  "routed_repo_ids": [
+    "crunding-weather_foreca_proxy_service-8aae91880849"
+  ],
+  "repos": [],
+  "repo_guides": [
+    {
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "overview": "The crunding-weather_foreca_proxy_service repository is a Go-based service designed to proxy weather forecasts from the Foreca API. It includes modules for handling gRPC requests, interacting with external APIs, and managing caching and rate limiting. The primary entrypoint is `cmd/serve/grpc.go`, which sets up the gRPC server and integrates various middleware for logging, recovery, and tracing.",
+      "key_flows": "- The service uses gRPC to handle incoming weather forecast requests [cmd/serve/grpc.go:1-250].\n- External API interactions are managed through adapters in `internal/foreca/adapters/clients` [internal/foreca/adapters/clients/foreca_client_test.go:1-147, internal/foreca/adapters/clients/foreca_client.go:1-139].\n- Caching is implemented using Memcached and LRU cache for efficient data retrieval [pkg/cache/memcached.go, pkg/cache/errors.go].\n- Rate limiting is handled by the `ratelimit` package to prevent abuse of the external API [internal/foreca/service_test.go:1-200, pkg/ratelimit/mocks/limiter_mocks.go:1-50].",
+      "entrypoints": "cmd/serve/grpc.go, main.go, cmd/root.go",
+      "languages": [
+        "go"
+      ],
+      "modules": "internal, pkg, cmd"
+    }
+  ],
+  "sources": [
+    {
+      "idx": 1,
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "rel_path": "pkg/pb/v0/pb.go",
+      "start_line": 1,
+      "end_line": 6,
+      "chunk_number": 1,
+      "score": 0.61446816,
+      "code": "package v0\n\n// Generate gRPC client and server auto-generated code\n//go:generate protoc --proto_path=. --go_out=. --go_opt=module=go.impalastudios.com/weather/foreca_proxy/pkg/pb/v0 service.v0.proto\n//go:generate protoc --proto_path=. --go-grpc_out=. --go-grpc_opt=module=go.impalastudios.com/weather/foreca_proxy/pkg/pb/v0 service.v0.proto\n"
+    },
+    {
+      "idx": 2,
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "rel_path": "cmd/serve/grpc.go",
+      "start_line": 1,
+      "end_line": 95,
+      "chunk_number": 1,
+      "score": 0.61086893,
+      "code": "package serve\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"github.com/dropbox/godropbox/memcache\"\n\t\"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors\"\n\t\"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging\"\n\t\"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery\"\n\tlru \"github.com/hashicorp/golang-lru/v2\"\n\t\"go.impalastudios.com/log\"\n\txotel \"go.impalastudios.com/otel\"\n\trequestid \"go.impalastudios.com/requestid/grpc\"\n\t\"go.impalastudios.com/weather/foreca_proxy/internal/foreca\"\n\t\"go.impalastudios.com/weather/foreca_proxy/internal/foreca/adapters\"\n\t\"go.impalastudios.com/weather/foreca_proxy/internal/foreca/adapters/clients\"\n\t\"go.impalastudios.com/weather/foreca_proxy/pkg/aws\"\n\t\"go.impalastudios.com/weather/foreca_proxy/pkg/cache\"\n\t\"go.impalastudios.com/weather/foreca_proxy/pkg/ratelimit\"\n\totelgrpctrace \"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc\"\n\t\"go.opentelemetry.io/otel\"\n\t\"go.opentelemetry.io/otel/propagation\"\n\t\"go.uber.org/zap\"\n\t\"google.golang.org/grpc/codes\"\n\t\"google.golang.org/grpc/metadata\"\n\t\"google.golang.org/grpc/status\"\n\t\"net/http\"\n\t\"time\"\n\n\t\"github.com/cockroachdb/errors\"\n\t\"github.com/spf13/cobra\"\n\t\"github.com/spf13/viper\"\n\totelgrpcmetric \"go.impalastudios.com/otel/grpc\"\n\tgrpcv0 \"go.impalastudios.com/weather/foreca_proxy/internal/foreca/adapters/handlers/grpc/v0\"\n\tpbv0 \"go.impalastudios.com/weather/foreca_proxy/pkg/pb/v0\"\n\t\"go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws\"\n\t\"google.golang.org/grpc\"\n\t\"google.golang.org/grpc/reflection\"\n\t\"net\"\n\t\"os\"\n)\n\nfunc InterceptorLogger(l *zap.Logger) logging.Logger {\n\treturn logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {\n\t\tf := make([]zap.Field, 0, len(fields)/2)\n\n\t\tfor i := 0; i < len(fields); i += 2 {\n\t\t\tkey := fields[i]\n\t\t\tvalue := fields[i+1]\n\n\t\t\tswitch v := value.(type) {\n\t\t\tcase string:\n\t\t\t\tf = append(f, zap.String(key.(string), v))\n\t\t\tcase int:\n\t\t\t\tf = append(f, zap.Int(key.(string), v))\n\t\t\tcase bool:\n\t\t\t\tf = append(f, zap.Bool(key.(string), v))\n\t\t\tdefault:\n\t\t\t\tf = append(f, zap.Any(key.(string), v))\n\t\t\t}\n\t\t}\n\n\t\tlogger := l.With(f...)\n\n\t\tswitch lvl {\n\t\tcase logging.LevelDebug:\n\t\t\tlogger.Debug(msg)\n\t\tcase logging.LevelInfo:\n\t\t\tlogger.Info(msg)\n\t\tcase logging.LevelWarn:\n\t\t\tlogger.Warn(msg)\n\t\tcase logging.LevelError:\n\t\t\tlogger.Error(msg)\n\t\tdefault:\n\t\t\tpanic(fmt.Sprintf(\"unknown level %v\", lvl))\n\t\t}\n\t})\n}\n\nfunc newServeGrpcCommand() *cobra.Command {\n\tcmd := &cobra.Command{\n\t\tUse:   \"grpc\",\n\t\tShort: \"Start gRPC server.\",\n\t\tPreRunE: func(cmd *cobra.Command, _ []string) error {\n\t\t\treturn viper.BindPFlags(cmd.Flags())\n\t\t},\n\t\tRunE: runServeGrpc,\n\t\tArgs: cobra.ExactArgs(0),\n\t}\n\n\tcmd.PersistentFlags().Int(\"app.grpc.port\", 50051, \"gRPC service port\")\n\n\treturn cmd\n}\n"
+    },
+    {
+      "idx": 3,
+      "repo_id": "crunding-weather_foreca_proxy_service-8aae91880849",
+      "rel_path": "internal/foreca/adapters/handlers/grpc/v0/server.go",
+      "start_line": 1,
+      "end_line": 37,
+      "chunk_number": 1,
+      "score": 0.6143981,
+      "code": "package v0\n\nimport (\n\t\"context\"\n\t\"errors\"\n\t\"go.impalastudios.com/weather/foreca_proxy/internal/foreca\"\n\tpbv0 \"go.impalastudios.com/weather/foreca_proxy/pkg/pb/v0\"\n\t\"google.golang.org/grpc/codes\"\n\t\"google.golang.org/grpc/status\"\n)\n\ntype forecastService interface {\n\tGetForecastForLocation(ctx context.Context, id int) (*foreca.Forecast, error)\n}\n\ntype Server struct {\n\tpbv0.UnimplementedForecaProxyServer\n\tservice forecastService\n\tt       *transformer\n}\n\nfunc NewServer(service forecastService) *Server {\n\treturn &Server{service: service}\n}\n\nfunc (s *Server) toGrpcError(err error) error {\n\tif errors.Is(err, foreca.ErrLocationNotFound) {\n\t\treturn status.Error(codes.NotFound, \"Location not found.\")\n\t}\n\n\tif errors.Is(err, foreca.ErrRequestThrottled) {\n\t\treturn status.Error(codes.ResourceExhausted, \"Too many requests. Retry later.\")\n\t}\n\n\treturn status.Error(codes.Internal, \"Something went wrong.\")\n}\n"
+    }
+  ]
+}

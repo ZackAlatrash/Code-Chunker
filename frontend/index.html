@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Code Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .nav-links {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .nav-links a {
+            color: #4a5568;
+            text-decoration: none;
+            margin: 0 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .nav-links a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .search-section {
+            padding: 2rem;
+            background: #f7fafc;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .setting-group label {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.9rem;
+        }
+
+        .setting-group input, .setting-group select {
+            padding: 0.7rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .results-section {
+            padding: 0 2rem 2rem;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #edf2f7;
+            border-radius: 8px;
+        }
+
+        .results-info {
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .result-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .result-header {
+            background: #f7fafc;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .result-title {
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: #718096;
+        }
+
+        .meta-item {
+            background: #e2e8f0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .result-content {
+            padding: 1rem;
+        }
+
+        .code-block {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .error {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Repository Guide Styles */
+        .repo-guides-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            color: #2d3748;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .repo-guides-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .repo-guide-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .repo-guide-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .repo-guide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .repo-guide-header h4 {
+            margin: 0;
+            color: #2d3748;
+            font-size: 1rem;
+        }
+
+        .languages {
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .repo-guide-content {
+            font-size: 0.9rem;
+        }
+
+        .guide-section {
+            margin-bottom: 0.75rem;
+        }
+
+        .guide-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .guide-section strong {
+            color: #4a5568;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .guide-section p {
+            color: #718096;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .code-results-section {
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .search-form {
+                flex-direction: column;
+            }
+
+            .settings {
+                grid-template-columns: 1fr;
+            }
+
+            .result-meta {
+                flex-direction: column;
+            }
+
+            .repo-guides-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Topic guard alert styles */
+        .topic-guard-message {
+            margin: 2rem;
+        }
+
+        .alert-box {
+            background: linear-gradient(135deg, #fef2f2 0%, #fde8e8 100%);
+            border: 2px solid #fca5a5;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(252, 165, 165, 0.1);
+        }
+
+        .alert-box h3 {
+            color: #dc2626;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .alert-box p {
+            color: #7f1d1d;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .alert-box small {
+            color: #991b1b;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 RAG Code Search</h1>
+            <p>Intelligent semantic search across your codebase using RAG (Retrieval-Augmented Generation)</p>
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html" class="active">🔍 Code Search</a>
+            <a href="qa.html">🤖 Q&A Assistant</a>
+        </div>
+
+        <div class="search-section">
+            <form class="search-form" id="searchForm">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="queryInput" 
+                    placeholder="Search for code... (e.g., 'authentication middleware', 'database connection')"
+                    required
+                >
+                <button type="submit" class="search-btn" id="searchBtn">
+                    <span id="searchBtnText">Search</span>
+                </button>
+            </form>
+
+                <div class="settings">
+                    <div class="setting-group">
+                        <label for="repoSelect">Repository (optional)</label>
+                        <select id="repoSelect">
+                            <option value="">All repositories</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="routerVersion">Router Version</label>
+                        <select id="routerVersion" title="Choose between different router strategies">
+                            <option value="v1">Router v1 (Default)</option>
+                            <option value="v2">Router v2 (Enhanced)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="chunksVersion">Chunks Version</label>
+                        <select id="chunksVersion" title="Choose between different chunk formats">
+                            <option value="v2">Chunks v2 (Default)</option>
+                            <option value="v3">Chunks v3 (Symbol-aware)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="numResults">Number of results</label>
+                        <input type="number" id="numResults" value="10" min="1" max="50">
+                    </div>
+                    <div class="setting-group">
+                        <label for="topRepos">Top repos to search</label>
+                        <input type="number" id="topRepos" value="2" min="1" max="10">
+                    </div>
+                    <div class="setting-group">
+                        <label for="disableTopicGuard">
+                            <input type="checkbox" id="disableTopicGuard" style="margin-right: 8px;">
+                            Disable Topic Guard 🛡️
+                        </label>
+                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                            Bypass topic-specific filtering and evidence gates
+                        </small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="enableRerank">
+                            <input type="checkbox" id="enableRerank" style="margin-right: 8px;">
+                            Cross-encoder Reranking 🔄
+                        </label>
+                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                            Use neural reranker to improve result relevance
+                        </small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="rerankSize">Rerank Pool Size</label>
+                        <input type="number" id="rerankSize" value="60" min="20" max="200" 
+                               title="Number of candidates to rerank">
+                    </div>
+                </div>
+        </div>
+
+        <div class="results-section">
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        // DOM elements
+        const searchForm = document.getElementById('searchForm');
+        const queryInput = document.getElementById('queryInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchBtnText = document.getElementById('searchBtnText');
+        const repoSelect = document.getElementById('repoSelect');
+        const routerVersion = document.getElementById('routerVersion');
+        const chunksVersion = document.getElementById('chunksVersion');
+        const numResults = document.getElementById('numResults');
+        const topRepos = document.getElementById('topRepos');
+        const disableTopicGuard = document.getElementById('disableTopicGuard');
+        const enableRerank = document.getElementById('enableRerank');
+        const rerankSize = document.getElementById('rerankSize');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        // Load repositories on page load
+        async function loadRepositories() {
+            try {
+                const version = routerVersion.value;
+                const response = await fetch(`${API_BASE_URL}/repositories?router_version=${version}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Clear existing options except the first one
+                    repoSelect.innerHTML = '<option value="">All repositories</option>';
+                    
+                    data.repositories.forEach(repo => {
+                        const option = document.createElement('option');
+                        option.value = repo.repo_id;
+                        option.textContent = repo.title || repo.repo_id;
+                        repoSelect.appendChild(option);
+                    });
+                    console.log(`Loaded ${data.repositories.length} repositories from ${data.router_version}`);
+                }
+            } catch (error) {
+                console.warn('Could not load repositories:', error);
+            }
+        }
+
+        // Show loading state
+        function showLoading() {
+            searchBtn.disabled = true;
+            searchBtnText.textContent = 'Searching...';
+            resultsContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Searching your codebase...</p>
+                </div>
+            `;
+        }
+
+        // Hide loading state
+        function hideLoading() {
+            searchBtn.disabled = false;
+            searchBtnText.textContent = 'Search';
+        }
+
+        // Show error message
+        function showError(message) {
+            resultsContainer.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+            hideLoading();
+        }
+
+        // Format code for display
+        function formatCode(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Create result item HTML
+        function createResultItem(result, index) {
+            const lineInfo = result.start_line && result.end_line 
+                ? `lines ${result.start_line}-${result.end_line}` 
+                : '';
+            
+            // Enhanced display with symbol info for v3 chunks
+            const symbolInfo = result.primary_symbol ? 
+                `<span class="meta-item">🎯 ${result.primary_kind || 'symbol'}: ${result.primary_symbol}</span>` : '';
+            const defSymbols = result.def_symbols && result.def_symbols.length > 0 ?
+                `<span class="meta-item">🔧 Defines: ${result.def_symbols.slice(0, 3).join(', ')}${result.def_symbols.length > 3 ? '...' : ''}</span>` : '';
+            
+            return `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">
+                            ${result.rel_path || result.path || 'Unknown file'}
+                        </div>
+                        <div class="result-meta">
+                            <span class="meta-item">📁 ${result.repo_id}</span>
+                            ${result.language ? `<span class="meta-item">💻 ${result.language}</span>` : ''}
+                            ${result.chunk_number ? `<span class="meta-item">📄 Chunk ${result.chunk_number}</span>` : ''}
+                            ${lineInfo ? `<span class="meta-item">📍 ${lineInfo}</span>` : ''}
+                            ${symbolInfo}
+                            ${defSymbols}
+                            <span class="meta-item">⭐ Score: ${result.score.toFixed(3)}</span>
+                        </div>
+                    </div>
+                    <div class="result-content">
+                        ${result.doc_head ? `<div style="background: #f8f9fa; padding: 0.5rem; margin-bottom: 0.5rem; border-left: 3px solid #667eea; font-style: italic; font-size: 0.9em;">📝 ${result.doc_head.substring(0, 200)}${result.doc_head.length > 200 ? '...' : ''}</div>` : ''}
+                        <pre class="code-block">${formatCode(result.text)}</pre>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Create repo guide item HTML
+        function createRouterItem(router) {
+            return `
+                <div class="router-item">
+                    <div class="router-item-header">
+                        <h4 class="router-item-title">🎯 ${router.short_title || router.repo_id}</h4>
+                        <span class="router-score">${router.score.toFixed(3)}</span>
+                    </div>
+                    <div class="router-details">
+                        ${router.summary ? `
+                            <div class="router-detail">
+                                <span class="router-detail-label">Summary:</span>
+                                <span class="router-detail-value">${router.summary}</span>
+                            </div>
+                        ` : ''}
+                        ${router.domains ? `
+                            <div class="router-detail">
+                                <span class="router-detail-label">Domains:</span>
+                                <span class="router-detail-value">${router.domains}</span>
+                            </div>
+                        ` : ''}
+                        ${router.tech_stack ? `
+                            <div class="router-detail">
+                                <span class="router-detail-label">Tech Stack:</span>
+                                <span class="router-detail-value">${router.tech_stack}</span>
+                            </div>
+                        ` : ''}
+                        ${router.key_modules ? `
+                            <div class="router-detail">
+                                <span class="router-detail-label">Key Modules:</span>
+                                <span class="router-detail-value">${router.key_modules}</span>
+                            </div>
+                        ` : ''}
+                        ${router.languages && router.languages.length > 0 ? `
+                            <div class="router-detail">
+                                <span class="router-detail-label">Languages:</span>
+                                <div class="router-languages">
+                                    ${router.languages.map(lang => `<span class="router-language-tag">${lang}</span>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${router.key_symbols ? `
+                            <div class="router-detail" style="grid-column: 1 / -1;">
+                                <span class="router-detail-label">Key Symbols:</span>
+                                <span class="router-detail-value">${router.key_symbols}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createRepoGuideItem(guide) {
+            return `
+                <div class="repo-guide-item">
+                    <div class="repo-guide-header">
+                        <h4>📁 ${guide.repo_id}</h4>
+                        ${guide.languages.length > 0 ? `<span class="languages">${guide.languages.join(', ')}</span>` : ''}
+                    </div>
+                    <div class="repo-guide-content">
+                        ${guide.overview ? `
+                            <div class="guide-section">
+                                <strong>Overview:</strong>
+                                <p>${guide.overview}</p>
+                            </div>
+                        ` : ''}
+                        ${guide.key_flows ? `
+                            <div class="guide-section">
+                                <strong>Key Flows:</strong>
+                                <p>${guide.key_flows}</p>
+                            </div>
+                        ` : ''}
+                        ${guide.entrypoints ? `
+                            <div class="guide-section">
+                                <strong>Entrypoints:</strong>
+                                <p>${guide.entrypoints}</p>
+                            </div>
+                        ` : ''}
+                        ${guide.modules ? `
+                            <div class="guide-section">
+                                <strong>Key Modules:</strong>
+                                <p>${guide.modules}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display search results
+        function displayResults(data) {
+            const { results, routed_repos, total_results, query, repo_guides, router_info, message } = data;
+
+            // Show topic guard message if present
+            if (message) {
+                resultsContainer.innerHTML = `
+                    <div class="topic-guard-message">
+                        <div class="alert-box">
+                            <h3>🚫 Topic Guard Active</h3>
+                            <p>${message}</p>
+                            <small>The search was constrained to look for specific topic terms, but insufficient evidence was found in the results.</small>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (results.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <h3>No results found</h3>
+                        <p>Try different keywords or check if your repositories are indexed.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Router section
+            let routerSection = '';
+            if (router_info && router_info.length > 0) {
+                routerSection = `
+                    <div class="router-section">
+                        <h3 class="section-title">🎯 Router Results</h3>
+                        <div class="router-info">
+                            ${router_info.map(router => createRouterItem(router)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Repository context section
+            let repoGuidesSection = '';
+            if (repo_guides && repo_guides.length > 0) {
+                repoGuidesSection = `
+                    <div class="repo-guides-section">
+                        <h3 class="section-title">🗺️ Repository Context</h3>
+                        <div class="repo-guides-grid">
+                            ${repo_guides.map(guide => createRepoGuideItem(guide)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const resultsHTML = `
+                <div class="results-header">
+                    <div class="results-info">
+                        Found <strong>${total_results}</strong> results for "<strong>${query}</strong>"
+                        ${routed_repos.length > 0 ? ` in repositories: <strong>${routed_repos.join(', ')}</strong>` : ''}
+                    </div>
+                </div>
+                ${routerSection}
+                ${repoGuidesSection}
+                <div class="code-results-section">
+                    <h3 class="section-title">📄 Code Results</h3>
+                    ${results.map((result, index) => createResultItem(result, index)).join('')}
+                </div>
+            `;
+
+            resultsContainer.innerHTML = resultsHTML;
+        }
+
+        // Perform search
+        async function performSearch(event) {
+            event.preventDefault();
+            
+            const query = queryInput.value.trim();
+            if (!query) return;
+
+            showLoading();
+
+            try {
+                const searchData = {
+                    query: query,
+                    final_k: parseInt(numResults.value),
+                    top_repos: parseInt(topRepos.value),
+                    explicit_repo: repoSelect.value || null,
+                    router_version: routerVersion.value,
+                    chunks_version: chunksVersion.value,
+                    disable_topic_guard: disableTopicGuard.checked,
+                    rerank: enableRerank.checked,
+                    rerank_size: parseInt(rerankSize.value)
+                };
+
+                const response = await fetch(`${API_BASE_URL}/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(searchData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+                
+            } catch (error) {
+                showError(`Failed to perform search: ${error.message}`);
+            }
+
+            hideLoading();
+        }
+
+        // Event listeners
+        searchForm.addEventListener('submit', performSearch);
+        
+        // Load repositories when page loads
+        window.addEventListener('load', loadRepositories);
+        
+        // Reload repositories when router version changes
+        routerVersion.addEventListener('change', loadRepositories);
+
+        // Auto-focus search input
+        queryInput.focus();
+
+        // Handle enter key in input
+        queryInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch(e);
+            }
+        });
+    </script>
+</body>
+</html>

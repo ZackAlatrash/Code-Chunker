@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A Code Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .nav-links {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .nav-links a {
+            color: #4a5568;
+            text-decoration: none;
+            margin: 0 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .nav-links a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .qa-section {
+            padding: 2rem;
+        }
+
+        .question-form {
+            background: #f7fafc;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .question-input-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .question-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .ask-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            height: fit-content;
+        }
+
+        .ask-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .ask-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .setting-group label {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.9rem;
+        }
+
+        .setting-group input, .setting-group select {
+            padding: 0.7rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .answer-section {
+            margin-top: 2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .answer-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .answer-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .answer-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #718096;
+        }
+
+        .meta-item {
+            background: #e2e8f0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .answer-content {
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .answer-content h1,
+        .answer-content h2,
+        .answer-content h3 {
+            color: #2d3748;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .answer-content h1 { font-size: 1.5rem; }
+        .answer-content h2 { font-size: 1.3rem; }
+        .answer-content h3 { font-size: 1.1rem; }
+
+        .answer-content p {
+            margin-bottom: 1rem;
+            color: #4a5568;
+        }
+
+        .answer-content ul,
+        .answer-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .answer-content li {
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+
+        .answer-content code {
+            background: #edf2f7;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        .answer-content pre {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .answer-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .citation {
+            background: #e6fffa;
+            color: #234e52;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-family: monospace;
+            border-left: 3px solid #38b2ac;
+        }
+
+        .error {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .sample-questions {
+            background: #f0f8ff;
+            border: 1px solid #bee3f8;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .sample-questions h3 {
+            color: #2a69ac;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .sample-question {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .sample-question:hover {
+            border-color: #667eea;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .question-input-container {
+                flex-direction: column;
+            }
+
+            .settings {
+                grid-template-columns: 1fr;
+            }
+
+            .answer-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        /* Topic guard alert styles */
+        .topic-guard-message {
+            margin: 2rem;
+        }
+
+        .alert-box {
+            background: linear-gradient(135deg, #fef2f2 0%, #fde8e8 100%);
+            border: 2px solid #fca5a5;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(252, 165, 165, 0.1);
+        }
+
+        .alert-box h3 {
+            color: #dc2626;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .alert-box p {
+            color: #7f1d1d;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .alert-box small {
+            color: #991b1b;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Debug Section Styles */
+        .debug-section {
+            margin-top: 2rem;
+            border-top: 2px solid #e2e8f0;
+            padding-top: 1.5rem;
+        }
+
+        .debug-details {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .debug-summary {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1rem;
+            list-style: none;
+            transition: background-color 0.2s;
+        }
+
+        .debug-summary:hover {
+            background: #5a67d8;
+        }
+
+        .debug-summary::marker {
+            content: '';
+        }
+
+        .debug-details[open] .debug-summary {
+            background: #5a67d8;
+        }
+
+        .debug-content {
+            padding: 1.5rem;
+            background: white;
+        }
+
+        .debug-item {
+            margin-bottom: 2rem;
+        }
+
+        .debug-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .debug-item h4 {
+            color: #4a5568;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .debug-item ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .debug-item li {
+            padding: 0.25rem 0;
+            color: #2d3748;
+        }
+
+        .debug-prompt, .debug-response {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #4a5568;
+        }
+
+        .debug-prompt code, .debug-response code {
+            color: inherit;
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            font-size: inherit;
+        }
+
+        .debug-badge {
+            background: #667eea !important;
+            color: white !important;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Q&A Code Assistant</h1>
+            <p>Ask questions about your codebase and get intelligent answers powered by AI</p>
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">🔍 Code Search</a>
+            <a href="qa.html" class="active">🤖 Q&A Assistant</a>
+        </div>
+
+        <div class="qa-section">
+            <div class="sample-questions">
+                <h3>💡 Try These Sample Questions:</h3>
+                <div class="sample-question" onclick="setQuestion('How is authentication handled in this codebase?')">
+                    How is authentication handled in this codebase?
+                </div>
+                <div class="sample-question" onclick="setQuestion('What are the main API endpoints and how do they work?')">
+                    What are the main API endpoints and how do they work?
+                </div>
+                <div class="sample-question" onclick="setQuestion('How is data validation implemented?')">
+                    How is data validation implemented?
+                </div>
+                <div class="sample-question" onclick="setQuestion('What database technologies are used and how?')">
+                    What database technologies are used and how?
+                </div>
+                <div class="sample-question" onclick="setQuestion('How does error handling work in this system?')">
+                    How does error handling work in this system?
+                </div>
+            </div>
+
+            <div class="question-form">
+                <div class="question-input-container">
+                    <textarea 
+                        id="questionInput" 
+                        class="question-input" 
+                        placeholder="Ask a question about your codebase... 
+
+For example:
+• How is user authentication implemented?
+• What are the main components of the API?
+• How does the database connection work?
+• What security measures are in place?"
+                        rows="4"
+                    ></textarea>
+                    <button id="askBtn" class="ask-btn" onclick="askQuestion()">
+                        <span id="askBtnText">Ask Question</span>
+                    </button>
+                </div>
+
+                <div class="settings">
+                    <div class="setting-group">
+                        <label for="repoSelect">Repository (optional)</label>
+                        <select id="repoSelect">
+                            <option value="">All repositories</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="routerVersion">Router Version</label>
+                        <select id="routerVersion" title="Choose between different router strategies">
+                            <option value="v1">Router v1 (Default)</option>
+                            <option value="v2">Router v2 (Enhanced)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="chunksVersion">Chunks Version</label>
+                        <select id="chunksVersion" title="Choose between different chunk formats">
+                            <option value="v2">Chunks v2 (Default)</option>
+                            <option value="v3">Chunks v3 (Symbol-aware)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="numSources">Number of sources</label>
+                        <input type="number" id="numSources" value="10" min="3" max="20">
+                    </div>
+                    <div class="setting-group">
+                        <label for="llmModel">LLM Model</label>
+                        <input type="text" id="llmModel" value="qwen2.5-coder:7b-instruct" 
+                               placeholder="e.g. qwen2.5-coder:7b-instruct">
+                    </div>
+                    <div class="setting-group">
+                        <label for="temperature">Temperature</label>
+                        <input type="number" id="temperature" value="0.0" min="0" max="1" step="0.1">
+                    </div>
+                    <div class="setting-group">
+                        <label for="spotlightChunks">Spotlight code chunks</label>
+                        <input type="number" id="spotlightChunks" value="3" min="2" max="6" 
+                               title="Number of key code chunks to highlight at the end">
+                    </div>
+                    <div class="setting-group">
+                        <label for="disableTopicGuard">
+                            <input type="checkbox" id="disableTopicGuard" style="margin-right: 8px;">
+                            Disable Topic Guard 🛡️
+                        </label>
+                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                            Bypass topic-specific filtering and evidence gates
+                        </small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="enableRerank">
+                            <input type="checkbox" id="enableRerank" style="margin-right: 8px;">
+                            Cross-encoder Reranking 🔄
+                        </label>
+                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                            Use neural reranker to improve result relevance
+                        </small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="rerankSize">Rerank Pool Size</label>
+                        <input type="number" id="rerankSize" value="60" min="20" max="200" 
+                               title="Number of candidates to rerank">
+                    </div>
+                    <div class="setting-group">
+                        <label for="includeRepoContext">
+                            <input type="checkbox" id="includeRepoContext" style="margin-right: 8px;">
+                            Include Repo Context 📖
+                        </label>
+                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                            Include repository guides for understanding (not cited)
+                        </small>
+                    </div>
+                    <div class="setting-group">
+                        <label for="debugMode">
+                            <input type="checkbox" id="debugMode" style="margin-right: 8px;">
+                            Debug Recording 🐛
+                        </label>
+                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                            Record LLM prompt and response for debugging
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="answer-section">
+                <div id="answerContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        // DOM elements
+        const questionInput = document.getElementById('questionInput');
+        const askBtn = document.getElementById('askBtn');
+        const askBtnText = document.getElementById('askBtnText');
+        const repoSelect = document.getElementById('repoSelect');
+        const routerVersion = document.getElementById('routerVersion');
+        const chunksVersion = document.getElementById('chunksVersion');
+        const numSources = document.getElementById('numSources');
+        const llmModel = document.getElementById('llmModel');
+        const temperature = document.getElementById('temperature');
+        const spotlightChunks = document.getElementById('spotlightChunks');
+        const disableTopicGuard = document.getElementById('disableTopicGuard');
+        const enableRerank = document.getElementById('enableRerank');
+        const rerankSize = document.getElementById('rerankSize');
+        const includeRepoContext = document.getElementById('includeRepoContext');
+        const debugMode = document.getElementById('debugMode');
+        const answerContainer = document.getElementById('answerContainer');
+
+        // Load repositories on page load
+        async function loadRepositories() {
+            try {
+                const version = routerVersion.value;
+                const response = await fetch(`${API_BASE_URL}/repositories?router_version=${version}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Clear existing options except the first one
+                    repoSelect.innerHTML = '<option value="">All repositories</option>';
+                    
+                    data.repositories.forEach(repo => {
+                        const option = document.createElement('option');
+                        option.value = repo.repo_id;
+                        option.textContent = repo.title || repo.repo_id;
+                        repoSelect.appendChild(option);
+                    });
+                    console.log(`Loaded ${data.repositories.length} repositories from ${data.router_version}`);
+                }
+            } catch (error) {
+                console.warn('Could not load repositories:', error);
+            }
+        }
+
+        // Set question from sample
+        function setQuestion(question) {
+            questionInput.value = question;
+            questionInput.focus();
+        }
+
+        // Show loading state
+        function showLoading() {
+            askBtn.disabled = true;
+            askBtnText.textContent = 'Thinking...';
+            answerContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing your codebase and generating answer...</p>
+                </div>
+            `;
+        }
+
+        // Hide loading state
+        function hideLoading() {
+            askBtn.disabled = false;
+            askBtnText.textContent = 'Ask Question';
+        }
+
+        // Show error message
+        function showError(message) {
+            answerContainer.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+            hideLoading();
+        }
+
+        // Format answer text with markdown-like formatting
+        function formatAnswer(text) {
+            return text
+                // Escape HTML
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                
+                // Headers
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                
+                // Bold
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                
+                // Code blocks
+                .replace(/```(\w+)?\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+                
+                // Inline code
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                
+                // Citations
+                .replace(/\[([^|]+)\|([^:]+):(\d+-\d+)\]/g, '<span class="citation">[$1|$2:$3]</span>')
+                
+                // Bullets
+                .replace(/^- (.*$)/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+                
+                // Line breaks
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/^(.)/gm, '<p>$1')
+                .replace(/(.)$/gm, '$1</p>')
+                
+                // Fix nested elements
+                .replace(/<p><h([1-6])>/g, '<h$1>')
+                .replace(/<\/h([1-6])><\/p>/g, '</h$1>')
+                .replace(/<p><ul>/g, '<ul>')
+                .replace(/<\/ul><\/p>/g, '</ul>')
+                .replace(/<p><pre>/g, '<pre>')
+                .replace(/<\/pre><\/p>/g, '</pre>');
+        }
+
+        // Display answer
+        function displayAnswer(data) {
+            const { question, answer, routed_repos, sources_used, model_used, debug_info } = data;
+
+            // Check if this is a topic guard response
+            if (answer === "Not found in provided sources.") {
+                const alertHTML = `
+                    <div class="topic-guard-message">
+                        <div class="alert-box">
+                            <h3>🚫 Topic Guard Active</h3>
+                            <p>Not found in provided sources.</p>
+                            <small>The question contained specific topic terms, but insufficient evidence was found in the search results.</small>
+                        </div>
+                    </div>
+                `;
+                answerContainer.innerHTML = alertHTML;
+                return;
+            }
+
+            const formattedAnswer = formatAnswer(answer);
+            
+            // Debug info section
+            let debugSection = '';
+            if (debug_info) {
+                debugSection = `
+                    <div class="debug-section">
+                        <details class="debug-details">
+                            <summary class="debug-summary">🐛 Debug Information (${debug_info.processing_time_ms?.toFixed(1)}ms)</summary>
+                            <div class="debug-content">
+                                <div class="debug-item">
+                                    <h4>📊 Metadata</h4>
+                                    <ul>
+                                        <li><strong>Topic Terms:</strong> ${debug_info.topic_terms?.join(', ') || 'None detected'}</li>
+                                        <li><strong>Search Results:</strong> ${debug_info.search_results_count} total hits</li>
+                                        <li><strong>Bundle Sources:</strong> ${debug_info.bundle_sources} sources sent to LLM</li>
+                                        <li><strong>Router Repos:</strong> ${debug_info.router_repos?.join(', ') || 'None'}</li>
+                                        <li><strong>Processing Time:</strong> ${debug_info.processing_time_ms?.toFixed(1)}ms</li>
+                                    </ul>
+                                </div>
+                                <div class="debug-item">
+                                    <h4>📝 LLM Prompt</h4>
+                                    <pre class="debug-prompt"><code>${debug_info.llm_prompt}</code></pre>
+                                </div>
+                                <div class="debug-item">
+                                    <h4>🤖 Raw LLM Response</h4>
+                                    <pre class="debug-response"><code>${debug_info.raw_llm_response}</code></pre>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }
+
+            const answerHTML = `
+                <div class="answer-container">
+                    <div class="answer-header">
+                        <div class="answer-meta">
+                            <span class="meta-item">📁 Repos: ${routed_repos.join(', ')}</span>
+                            <span class="meta-item">📄 Sources: ${sources_used}</span>
+                            <span class="meta-item">🤖 Model: ${model_used}</span>
+                            ${debug_info ? '<span class="meta-item debug-badge">🐛 Debug Mode</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="answer-content">
+                        ${formattedAnswer}
+                    </div>
+                    ${debugSection}
+                </div>
+            `;
+
+            answerContainer.innerHTML = answerHTML;
+        }
+
+        // Ask question
+        async function askQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) {
+                showError('Please enter a question');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const qaData = {
+                    question: question,
+                    final_k: parseInt(numSources.value),
+                    explicit_repo: repoSelect.value || null,
+                    llm_model: llmModel.value.trim(),
+                    temperature: parseFloat(temperature.value),
+                    spotlight_chunks: parseInt(spotlightChunks.value),
+                    router_version: routerVersion.value,
+                    chunks_version: chunksVersion.value,
+                    disable_topic_guard: disableTopicGuard.checked,
+                    rerank: enableRerank.checked,
+                    rerank_size: parseInt(rerankSize.value),
+                    include_repo_context: includeRepoContext.checked,
+                    debug: debugMode.checked
+                };
+
+                const response = await fetch(`${API_BASE_URL}/qa`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(qaData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayAnswer(data);
+                
+            } catch (error) {
+                showError(`Failed to get answer: ${error.message}`);
+            }
+
+            hideLoading();
+        }
+
+        // Event listeners
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                askQuestion();
+            }
+        });
+
+        // Load repositories when page loads
+        window.addEventListener('load', loadRepositories);
+        
+        // Reload repositories when router version changes
+        routerVersion.addEventListener('change', loadRepositories);
+
+        // Auto-focus question input
+        questionInput.focus();
+    </script>
+</body>
+</html>

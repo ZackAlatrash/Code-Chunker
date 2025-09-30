@@ -3,8 +3,8 @@ import os
 import json
 import argparse
 from datetime import datetime
-from Chunker import CodeChunker, Chunker
-from utils import count_tokens
+from src.Chunker import CodeChunker, Chunker
+from src.utils import count_tokens
 
 # Extensions your CodeParser/CodeChunker supports
 SUPPORTED_EXTS = {"py", "js", "jsx", "css", "ts", "tsx", "php", "rb", "go"}
@@ -71,7 +71,17 @@ def chunk_project(
                 continue
 
             for cidx in sorted(chunks):
-                text = chunks[cidx]
+                chunk = chunks[cidx]
+                # Support both dict-valued chunks (new) and string-valued (legacy)
+                if isinstance(chunk, dict):
+                    text = chunk.get("text", "")
+                    start_line = chunk.get("start_line")
+                    end_line = chunk.get("end_line")
+                else:
+                    text = str(chunk)
+                    start_line = None
+                    end_line = None
+
                 n_tokens = count_tokens(text, encoding_name)
                 record = {
                     "id": f"{path}#{cidx}",
@@ -82,6 +92,9 @@ def chunk_project(
                     "n_tokens": n_tokens,
                     "byte_len": len(text.encode('utf-8')),
                 }
+                if start_line is not None and end_line is not None:
+                    record["start_line"] = start_line
+                    record["end_line"] = end_line
                 out.write(json.dumps(record, ensure_ascii=False) + "\n")
                 total_chunks += 1
 

@@ -19,7 +19,10 @@ def build_knn_query(qvec: List[float], k: int) -> Dict[str, Any]:
                 }
             }
         },
-        "_source": ["id", "path", "ext", "chunk_number", "text"]
+        "_source": [
+            "id", "path", "ext", "chunk_number", "text",
+            "start_line", "end_line"
+        ]
     }
 
 
@@ -35,7 +38,10 @@ def build_hybrid_query(query_text: str, qvec: List[float], k: int) -> Dict[str, 
                 ]
             }
         },
-        "_source": ["id", "path", "ext", "chunk_number", "text"]
+        "_source": [
+            "id", "path", "ext", "chunk_number", "text",
+            "start_line", "end_line"
+        ]
     }
 
 
@@ -48,14 +54,15 @@ def pretty_print(res: Dict[str, Any]) -> None:
     print("\n=== Search Results ===\n")
     for i, h in enumerate(hits, 1):
         src = h["_source"]
-        print(f"[{i}] File: {src.get('path')}  (ext: {src.get('ext')}, chunk: {src.get('chunk_number')})")
+        # Optional line range info if indexed
+        sl, el = src.get("start_line"), src.get("end_line")
+        lines_info = f", lines {sl}-{el}" if sl is not None and el is not None else ""
+        print(f"[{i}] File: {src.get('path')}  (ext: {src.get('ext')}, chunk: {src.get('chunk_number')}{lines_info})")
         print(f"    ID: {src.get('id')}")
         print("    Code:")
         # show first ~6 lines of the chunk, trimmed
         lines = src.get("text", "").strip().splitlines()
-        preview = "\n           ".join(lines[:6])
-        if len(lines) > 6:
-            preview += "\n           ..."
+        preview = "\n           ".join(lines)
         print(f"           {preview}")
         print()
 

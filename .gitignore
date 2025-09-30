@@ -12,6 +12,6 @@ __pycache__/
 .venv/
 venv/
 env/
-
+ops/data/
 # OS files
 .DS_Store

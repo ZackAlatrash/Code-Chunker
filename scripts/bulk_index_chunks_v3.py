@@ -3,7 +3,7 @@
 Bulk indexer for code_chunks_v3 (keeps your old indexer intact).
 
 Usage:
-  python scripts/bulk_index_chunks_v3.py run/myrepo_chunks_v3.jsonl http://localhost:9200 \
+  python scripts/bulk_index_chunks_v3.py r 3.jsonl http://localhost:9200 \
     --index code_chunks_v3
 
 Options:

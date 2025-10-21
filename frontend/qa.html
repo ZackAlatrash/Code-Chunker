@@ -269,6 +269,47 @@
             color: inherit;
         }
 
+        /* Citation styling for RAG v4 */
+        .citation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.85em;
+            margin: 0 0.2rem;
+            display: inline-block;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .citation:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Evidence block styling */
+        .evidence-block {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+
+        .rag-mode-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
         .citation {
             background: #e6fffa;
             color: #234e52;
@@ -345,39 +386,6 @@
             }
         }
 
-        /* Topic guard alert styles */
-        .topic-guard-message {
-            margin: 2rem;
-        }
-
-        .alert-box {
-            background: linear-gradient(135deg, #fef2f2 0%, #fde8e8 100%);
-            border: 2px solid #fca5a5;
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(252, 165, 165, 0.1);
-        }
-
-        .alert-box h3 {
-            color: #dc2626;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            font-weight: 600;
-        }
-
-        .alert-box p {
-            color: #7f1d1d;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-
-        .alert-box small {
-            color: #991b1b;
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
 
         /* Debug Section Styles */
         .debug-section {
@@ -543,15 +551,30 @@ For example:
                     <div class="setting-group">
                         <label for="routerVersion">Router Version</label>
                         <select id="routerVersion" title="Choose between different router strategies">
-                            <option value="v1">Router v1 (Default)</option>
-                            <option value="v2">Router v2 (Enhanced)</option>
+                            <option value="v1">Router v1</option>
+                            <option value="v2" selected>Router v2 (Enhanced) ⚡</option>
                         </select>
                     </div>
                     <div class="setting-group">
                         <label for="chunksVersion">Chunks Version</label>
                         <select id="chunksVersion" title="Choose between different chunk formats">
-                            <option value="v2">Chunks v2 (Default)</option>
+                            <option value="v2">Chunks v2</option>
                             <option value="v3">Chunks v3 (Symbol-aware)</option>
+                            <option value="v4" selected>Chunks v4 (Hybrid Search) ⚡</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="retrieverIndex">Retriever Index</label>
+                        <select id="retrieverIndex" title="Choose which index to search (embedding model)">
+                            <option value="">Default v4 (MiniLM)</option>
+                            <option value="code_chunks_v5_qodo">v5 Qodo (1536-dim)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="ragMode">RAG Mode</label>
+                        <select id="ragMode" title="Choose between legacy and Evidence-based RAG">
+                            <option value="legacy">Legacy (Standard Bundle)</option>
+                            <option value="v4" selected>RAG v4 (Evidence + Citations) ⚡</option>
                         </select>
                     </div>
                     <div class="setting-group">
@@ -573,27 +596,13 @@ For example:
                                title="Number of key code chunks to highlight at the end">
                     </div>
                     <div class="setting-group">
-                        <label for="disableTopicGuard">
-                            <input type="checkbox" id="disableTopicGuard" style="margin-right: 8px;">
-                            Disable Topic Guard 🛡️
+                        <label for="enableFilterRerank">
+                            <input type="checkbox" id="enableFilterRerank" style="margin-right: 8px;">
+                            🏠 LLM Filter + Rerank (100% Local) 🚀
                         </label>
                         <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
-                            Bypass topic-specific filtering and evidence gates
+                            Two-stage relevance filtering: LLM judge (Ollama 7B) + local cross-encoder (BGE-reranker)
                         </small>
-                    </div>
-                    <div class="setting-group">
-                        <label for="enableRerank">
-                            <input type="checkbox" id="enableRerank" style="margin-right: 8px;">
-                            Cross-encoder Reranking 🔄
-                        </label>
-                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
-                            Use neural reranker to improve result relevance
-                        </small>
-                    </div>
-                    <div class="setting-group">
-                        <label for="rerankSize">Rerank Pool Size</label>
-                        <input type="number" id="rerankSize" value="60" min="20" max="200" 
-                               title="Number of candidates to rerank">
                     </div>
                     <div class="setting-group">
                         <label for="includeRepoContext">
@@ -632,13 +641,13 @@ For example:
         const repoSelect = document.getElementById('repoSelect');
         const routerVersion = document.getElementById('routerVersion');
         const chunksVersion = document.getElementById('chunksVersion');
+        const ragMode = document.getElementById('ragMode');
+        const retrieverIndex = document.getElementById('retrieverIndex');
         const numSources = document.getElementById('numSources');
         const llmModel = document.getElementById('llmModel');
         const temperature = document.getElementById('temperature');
         const spotlightChunks = document.getElementById('spotlightChunks');
-        const disableTopicGuard = document.getElementById('disableTopicGuard');
-        const enableRerank = document.getElementById('enableRerank');
-        const rerankSize = document.getElementById('rerankSize');
+        const enableFilterRerank = document.getElementById('enableFilterRerank');
         const includeRepoContext = document.getElementById('includeRepoContext');
         const debugMode = document.getElementById('debugMode');
         const answerContainer = document.getElementById('answerContainer');
@@ -703,65 +712,70 @@ For example:
 
         // Format answer text with markdown-like formatting
         function formatAnswer(text) {
-            return text
-                // Escape HTML
+            // First, escape HTML
+            let html = text
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                
-                // Headers
+                .replace(/>/g, '&gt;');
+            
+            // Extract and process code blocks separately to preserve formatting
+            const codeBlocks = [];
+            html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
+                codeBlocks.push({ lang: lang || '', code: code.trim() });
+                return placeholder;
+            });
+            
+            // Process markdown
+            html = html
+                // Headers (must be before paragraphs)
                 .replace(/^### (.*$)/gm, '<h3>$1</h3>')
                 .replace(/^## (.*$)/gm, '<h2>$1</h2>')
                 .replace(/^# (.*$)/gm, '<h1>$1</h1>')
                 
-                // Bold
+                // Bold and inline code (before paragraphs)
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                
-                // Code blocks
-                .replace(/```(\w+)?\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-                
-                // Inline code
                 .replace(/`([^`]+)`/g, '<code>$1</code>')
                 
-                // Citations
+                // Citations - RAG v4 style [1], [2], etc.
+                .replace(/\[(\d+)(?:,\s*lines?\s+[\d-]+)?\]/g, '<span class="citation">$&</span>')
+                // Citations - Legacy style [symbol|file:lines]
                 .replace(/\[([^|]+)\|([^:]+):(\d+-\d+)\]/g, '<span class="citation">[$1|$2:$3]</span>')
                 
-                // Bullets
-                .replace(/^- (.*$)/gm, '<li>$1</li>')
-                .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+                // Bullets (must handle before paragraphs)
+                .replace(/^[\s]*[-*]\s+(.*$)/gm, '<li>$1</li>')
+                .replace(/(<li>.*?<\/li>(?:\n<li>.*?<\/li>)*)/gs, '<ul>$1</ul>')
                 
-                // Line breaks
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/^(.)/gm, '<p>$1')
-                .replace(/(.)$/gm, '$1</p>')
+                // Numbered lists
+                .replace(/^\d+\.\s+(.*$)/gm, '<li>$1</li>')
                 
-                // Fix nested elements
-                .replace(/<p><h([1-6])>/g, '<h$1>')
-                .replace(/<\/h([1-6])><\/p>/g, '</h$1>')
-                .replace(/<p><ul>/g, '<ul>')
-                .replace(/<\/ul><\/p>/g, '</ul>')
-                .replace(/<p><pre>/g, '<pre>')
-                .replace(/<\/pre><\/p>/g, '</pre>');
+                // Line breaks and paragraphs (split by double newlines)
+                .split(/\n\n+/)
+                .map(para => {
+                    // Don't wrap headers, lists, or code block placeholders
+                    if (para.match(/^<h[1-6]>/) || para.match(/^<ul>/) || para.match(/^<ol>/) || para.match(/___CODE_BLOCK_/)) {
+                        return para;
+                    }
+                    return para.trim() ? `<p>${para}</p>` : '';
+                })
+                .join('\n');
+            
+            // Restore code blocks
+            codeBlocks.forEach((block, i) => {
+                const langLabel = block.lang ? ` <span style="opacity:0.6; font-size:0.8em;">(${block.lang})</span>` : '';
+                html = html.replace(
+                    `___CODE_BLOCK_${i}___`,
+                    `<pre><code>${block.code}</code></pre>`
+                );
+            });
+            
+            return html;
         }
 
         // Display answer
         function displayAnswer(data) {
             const { question, answer, routed_repos, sources_used, model_used, debug_info } = data;
 
-            // Check if this is a topic guard response
-            if (answer === "Not found in provided sources.") {
-                const alertHTML = `
-                    <div class="topic-guard-message">
-                        <div class="alert-box">
-                            <h3>🚫 Topic Guard Active</h3>
-                            <p>Not found in provided sources.</p>
-                            <small>The question contained specific topic terms, but insufficient evidence was found in the search results.</small>
-                        </div>
-                    </div>
-                `;
-                answerContainer.innerHTML = alertHTML;
-                return;
-            }
 
             const formattedAnswer = formatAnswer(answer);
             
@@ -797,6 +811,10 @@ For example:
                 `;
             }
 
+            // Check if RAG v4 mode is enabled
+            const isRagV4 = ragMode.value === 'v4';
+            const ragBadge = isRagV4 ? '<span class="rag-mode-badge">✨ RAG v4 (Evidence + Citations)</span>' : '';
+            
             const answerHTML = `
                 <div class="answer-container">
                     <div class="answer-header">
@@ -804,6 +822,7 @@ For example:
                             <span class="meta-item">📁 Repos: ${routed_repos.join(', ')}</span>
                             <span class="meta-item">📄 Sources: ${sources_used}</span>
                             <span class="meta-item">🤖 Model: ${model_used}</span>
+                            ${ragBadge}
                             ${debug_info ? '<span class="meta-item debug-badge">🐛 Debug Mode</span>' : ''}
                         </div>
                     </div>
@@ -837,11 +856,11 @@ For example:
                     spotlight_chunks: parseInt(spotlightChunks.value),
                     router_version: routerVersion.value,
                     chunks_version: chunksVersion.value,
-                    disable_topic_guard: disableTopicGuard.checked,
-                    rerank: enableRerank.checked,
-                    rerank_size: parseInt(rerankSize.value),
+                    rag_mode: ragMode.value,
+                    use_filter_rerank: enableFilterRerank.checked,
                     include_repo_context: includeRepoContext.checked,
-                    debug: debugMode.checked
+                    debug: debugMode.checked,
+                    retriever_index: retrieverIndex.value || null
                 };
 
                 const response = await fetch(`${API_BASE_URL}/qa`, {

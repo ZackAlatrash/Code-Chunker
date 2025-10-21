@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chunk Quality Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .chunk-card {
+            background: white;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chunk-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chunk-title {
+            font-weight: 600;
+            color: #333;
+        }
+        .chunk-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+        .chunk-body {
+            padding: 20px;
+        }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+        .enrichment {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .enrichment h4 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+        }
+        .keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .keyword {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-function { background: #e3f2fd; color: #1976d2; }
+        .badge-method { background: #f3e5f5; color: #7b1fa2; }
+        .badge-type { background: #e8f5e9; color: #388e3c; }
+        .badge-header { background: #fff3e0; color: #f57c00; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-error { background: #f8d7da; color: #721c24; }
+        .filter-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-bar input, .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Chunk Quality Report</h1>
+            <p>Generated from: chunk testing/aviation_schedules_v4_600tok_nested_fixed.jsonl</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Chunks</h3>
+                <div class="value">20</div>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Tokens</h3>
+                <div class="value">190</div>
+            </div>
+            <div class="stat-card">
+                <h3>With LLM Summary</h3>
+                <div class="value">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>With Keywords</h3>
+                <div class="value">0</div>
+            </div>
+        </div>
+        
+        <div class="filter-bar">
+            <input type="text" id="searchInput" placeholder="Search file path..." onkeyup="filterChunks()">
+            <select id="kindFilter" onchange="filterChunks()">
+                <option value="">All Types</option>
+                <option value="function">Functions</option>
+                <option value="method">Methods</option>
+                <option value="type">Types</option>
+                <option value="header">Headers</option>
+            </select>
+            <button onclick="showAll()">Show All</button>
+        </div>
+        
+        <div id="chunks">
+
+            <div class="chunk-card" data-kind="header" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-header">header</span>
+                        (header)
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 1-2</span>
+                        <span>🔢 4 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">package ssim
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="header" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-header">header</span>
+                        (header)
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 3-19</span>
+                        <span>🔢 145 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">import (
+	&quot;context&quot;
+	&quot;os&quot;
+	&quot;os/signal&quot;
+
+	&quot;github.com/cockroachdb/errors&quot;
+	&quot;github.com/spf13/cobra&quot;
+	&quot;github.com/spf13/viper&quot;
+	&quot;go.impalastudios.com/aviation/schedules/pkg/concurrent&quot;
+	&quot;go.impalastudios.com/aviation/schedules/pkg/pgsql&quot;
+	ssim_db &quot;go.impalastudios.com/aviation/schedules/pkg/ssim/db&quot;
+	&quot;go.impalastudios.com/aviation/schedules/pkg/ssim/parser&quot;
+	&quot;go.impalastudios.com/aviation/schedules/pkg/ssim/writer&quot;
+	&quot;go.impalastudios.com/log&quot;
+	&quot;go.uber.org/zap&quot;
+
+... (2 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        NewExport
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 20-43</span>
+                        <span>🔢 238 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func NewExport() *cobra.Command {
+	cmd := &amp;cobra.Command{
+		Use:   &quot;export&quot;,
+		Short: &quot;Export flights data&quot;,
+		Long:  &quot;Exports flight data from the database to a CSV file&quot;,
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
+			return viper.BindPFlags(cmd.Flags())
+		},
+		RunE: runExport,
+		Args: cobra.ExactArgs(0),
+	}
+
+	cmd.PersistentFlags().String(&quot;airline&quot;, &quot;AA&quot;, &quot;Airline code&quot;)
+	cmd.PersistentFlags().String(&quot;schema&quot;, &quot;period_2024_1&quot;, &quot;Schema name&quot;)
+
+
+... (9 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="type" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-type">type</span>
+                        exportCfg
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 44-50</span>
+                        <span>🔢 38 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">type exportCfg struct {
+	Airline []string `mapstructure:&quot;airline&quot;`
+	Schema  []string `mapstructure:&quot;schema&quot;`
+
+	DB *pgsql.Config `mapstructure:&quot;db&quot;`
+}
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        runExport
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 51-76</span>
+                        <span>🔢 124 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func runExport(cmd *cobra.Command, _ []string) error {
+	var cfg exportCfg
+	if err := viper.Unmarshal(&amp;cfg); err != nil {
+		return err
+	}
+
+	quit := make(chan os.Signal, 1)
+
+	signal.Notify(quit, os.Interrupt)
+
+	ctx, cancel := context.WithCancel(cmd.Context())
+	defer cancel()
+
+	errChan := make(chan error, 1)
+	go func() {
+
+... (11 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        export
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 77-126</span>
+                        <span>🔢 377 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func export(ctx context.Context, cfg *exportCfg) error {
+	log.Debug(ctx, &quot;Starting export process&quot;)
+
+	db, err := pgsql.Connect(ctx, cfg.DB)
+	if err != nil {
+		return errors.Wrap(err, &quot;failed to connect to database&quot;)
+	}
+	defer db.Close()
+
+	schemas, err := listSchemas(ctx, db)
+	if err != nil {
+		return err
+	}
+
+	type exportSpec struct {
+
+... (35 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        listSchemas
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 127-152</span>
+                        <span>🔢 192 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func listSchemas(ctx context.Context, db *pgsql.DB) (map[string]bool, error) {
+	log.Debug(ctx, &quot;Querying all the schemas&quot;)
+
+	rows, err := db.Query(ctx, &quot;SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE &#39;period_%&#39;&quot;)
+	if err != nil {
+		return nil, errors.Wrap(err, &quot;failed to list schemas&quot;)
+	}
+	defer rows.Close()
+
+	schemas := make(map[string]bool)
+	for rows.Next() {
+		var schema string
+		if err := rows.Scan(&amp;schema); err != nil {
+			return nil, errors.Wrap(err, &quot;failed to scan schema&quot;)
+		}
+
+... (11 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="type" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-type">type</span>
+                        writerCounter
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 153-159</span>
+                        <span>🔢 38 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">type writerCounter struct {
+	blockWriter *writer.BlockWriter
+
+	TotalFlights           *concurrent.AtomicInt64
+	TotalConnectingFilghts *concurrent.AtomicInt64
+}
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="method" data-file="cmd/ssim/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-method">method</span>
+                        Write
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 160-166</span>
+                        <span>🔢 65 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func (w *writerCounter) Write(block *parser.CarrierTrailerBlock) (*parser.CarrierTrailerBlockLink, error) {
+	w.TotalConnectingFilghts.Add(int64(len(block.ConnectingFlights)))
+	w.TotalFlights.Add(int64(len(block.Flights)))
+
+	return w.blockWriter.Write(block)
+}
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="header" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-header">header</span>
+                        (header)
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 1-2</span>
+                        <span>🔢 3 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">package db
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="header" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-header">header</span>
+                        (header)
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 3-17</span>
+                        <span>🔢 97 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">import (
+	&quot;context&quot;
+	&quot;fmt&quot;
+	&quot;strconv&quot;
+	&quot;strings&quot;
+	&quot;time&quot;
+
+	&quot;github.com/jackc/pgx/v4&quot;
+	&quot;go.impalastudios.com/aviation/schedules/pkg/pgsql&quot;
+	&quot;go.impalastudios.com/aviation/schedules/pkg/ssim/parser&quot;
+	&quot;go.impalastudios.com/aviation/schedules/pkg/ssim/reader&quot;
+	&quot;go.impalastudios.com/log&quot;
+	&quot;go.uber.org/zap&quot;
+)
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="type" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-type">type</span>
+                        writer
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 18-21</span>
+                        <span>🔢 26 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">type writer interface {
+	Write(block *parser.CarrierTrailerBlock) (*parser.CarrierTrailerBlockLink, error)
+}
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        Export
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 22-64</span>
+                        <span>🔢 348 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">// Export exports the schema of the database as a carrier trailer file format
+// Basically exports the state of the current database to run diff on it
+func Export(ctx context.Context, db *pgsql.DB, w writer, schema, airline string) error {
+	parts := strings.Split(schema, &quot;_&quot;)
+	year, _ := strconv.Atoi(parts[1])
+	month, _ := strconv.Atoi(parts[2])
+
+	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(year, time.Month(month)+1, 0, 23, 59, 59, 0, time.UTC)
+
+	ct := parser.CarrierTrailerBlock{
+		Carrier: &amp;reader.Carrier{
+			AirlineDesignator: airline,
+		},
+		Trailer:           &amp;reader.Trailer{},
+
+... (28 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="type" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-type">type</span>
+                        flight
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 65-95</span>
+                        <span>🔢 221 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">type flight struct {
+	CFI                      *int64
+	ID                       int64
+	FlightID                 string
+	ConnectingFlightID       string
+	Itinerary                int8
+	Sequence                 int8
+	Airline                  string
+	FlightNumber             int
+	DepartureAirport         string
+	ArrivalAirport           string
+	Aircraft                 string
+	Status                   string
+	DepartureStatus          string
+	ArrivalStatus            string
+
+... (16 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        fromDateAndTimeWithTZ
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 96-99</span>
+                        <span>🔢 54 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func fromDateAndTimeWithTZ(date time.Time, timeTZ string) (time.Time, error) {
+	return time.Parse(&quot;2006-01-02 1504-0700&quot;, date.Format(&quot;2006-01-02&quot;)+&quot; &quot;+timeTZ)
+}
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        queryDirectFlights
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 100-156</span>
+                        <span>🔢 404 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func queryDirectFlights(ctx context.Context, db *pgsql.DB, schema, airline string) ([]*parser.Flight, error) {
+	q := fmt.Sprintf(`
+	SELECT
+		flights.connecting_flight_id as cfi,
+		flights.id,
+		flights.flight_id,
+		&#39;&#39; as connecting_flight_id,
+		flights.airline,
+		flights.flight_number,
+		flights.itinerary,
+		flights.sequence,
+		flights.departure_airport,
+		flights.arrival_airport,
+		flights.aircraft,
+		flights.status,
+
+... (42 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        scan
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 157-190</span>
+                        <span>🔢 280 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func scan(rows pgx.Rows) (*flight, error) {
+	var f flight
+	err := rows.Scan(
+		&amp;f.CFI,
+		&amp;f.ID,
+		&amp;f.FlightID,
+		&amp;f.ConnectingFlightID,
+		&amp;f.Airline,
+		&amp;f.FlightNumber,
+		&amp;f.Itinerary,
+		&amp;f.Sequence,
+		&amp;f.DepartureAirport,
+		&amp;f.ArrivalAirport,
+		&amp;f.Aircraft,
+		&amp;f.Status,
+
+... (19 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        safePtr
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 191-197</span>
+                        <span>🔢 30 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func safePtr[T any](i *T) T {
+	if i == nil {
+		return *new(T)
+	}
+	return *i
+}
+</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        toDomain
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 198-248</span>
+                        <span>🔢 529 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func toDomain(f *flight) (*parser.Flight, error) {
+	var err error
+
+	flight := &amp;parser.Flight{
+		ID:                 f.ID,
+		FlightID:           f.FlightID,
+		ConnectingFlightID: safePtr(f.CFI),
+		Airline:            f.Airline,
+		FlightNumber:       f.FlightNumber,
+		Itinerary:          f.Itinerary,
+		Sequence:           f.Sequence,
+		DepartureAirport:   f.DepartureAirport,
+		ArrivalAirport:     f.ArrivalAirport,
+		Aircraft:           f.Aircraft,
+		Status:             f.Status,
+
+... (36 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+            <div class="chunk-card" data-kind="function" data-file="pkg/ssim/db/export.go">
+                <div class="chunk-header">
+                    <div class="chunk-title">
+                        <span class="badge badge-function">function</span>
+                        queryConnectingFlights
+                    </div>
+                    <div class="chunk-meta">
+                        <span>📄 export.go</span>
+                        <span>📏 249-331</span>
+                        <span>🔢 604 tokens</span>
+                    </div>
+                </div>
+                <div class="chunk-body">
+            
+                    <div class="code-block">func queryConnectingFlights(ctx context.Context, db *pgsql.DB, schema, airline string) ([]*parser.ConnectingFlight, error) {
+	q := fmt.Sprintf(`
+	SELECT
+		f.connecting_flight_id as cfi,
+		f.id,
+		f.flight_id,
+		cf.connecting_flight_id,
+		f.airline,
+		f.flight_number,
+		f.itinerary,
+		f.sequence,
+		f.departure_airport,
+		f.arrival_airport,
+		f.aircraft,
+		f.status,
+
+... (68 more lines) ...</div>
+            
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <script>
+        function filterChunks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const kindFilter = document.getElementById('kindFilter').value;
+            const chunks = document.querySelectorAll('.chunk-card');
+            
+            chunks.forEach(chunk => {
+                const file = chunk.dataset.file.toLowerCase();
+                const kind = chunk.dataset.kind;
+                
+                const matchesSearch = !searchTerm || file.includes(searchTerm);
+                const matchesKind = !kindFilter || kind === kindFilter;
+                
+                if (matchesSearch && matchesKind) {
+                    chunk.classList.remove('hidden');
+                } else {
+                    chunk.classList.add('hidden');
+                }
+            });
+        }
+        
+        function showAll() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('kindFilter').value = '';
+            filterChunks();
+        }
+    </script>
+</body>
+</html>

@@ -20,14 +20,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
 
 # Import search functionality from existing scripts
 from search_into_json import (
-    detect_topic_terms,
-    passes_relevance_gate, 
-    bm25_v3_guarded,
     bm25_filtered_query,
     bm25_v3_query,
     bm25_fetch_forecast,
     detect_fetch_forecast_intent,
-    evidence_overlap_ok,
     knn_search_filtered,
     rrf_fuse,
     rerank_with_cross_encoder,
@@ -35,8 +31,7 @@ from search_into_json import (
     fetch_router_context,
     fetch_repo_guides,
     build_llm_bundle,
-    router_query,
-    TOPIC_LEX
+    router_query
 )
 
 class SearchService:
@@ -46,25 +41,6 @@ class SearchService:
         self.client = opensearch_client
         self.model = embedding_model
     
-    def detect_query_topics(self, query: str) -> List[str]:
-        """Detect topic terms in a query"""
-        return detect_topic_terms(query)
-    
-    def validate_topic_evidence(self, hits: List[Dict], topic_terms: List[str], 
-                               k_check: int = 8, min_hits: int = 2) -> bool:
-        """Check if search results contain sufficient topic evidence"""
-        return passes_relevance_gate(hits, topic_terms, k_check, min_hits)
-    
-    def validate_evidence_overlap(self, question: str, fused_hits: List[Dict], 
-                                 min_distinct: int = 2, top_n: int = 10) -> bool:
-        """Validate that search results have sufficient token overlap with query"""
-        return evidence_overlap_ok(question, fused_hits, min_distinct, top_n)
-    
-    def search_with_topic_guard(self, query: str, repo_ids: List[str], 
-                               size: int, topic_terms: List[str],
-                               source_fields: Optional[List[str]] = None) -> Dict[str, Any]:
-        """Perform topic-guarded BM25 search"""
-        return bm25_v3_guarded(query, repo_ids, size, topic_terms, source_fields)
     
     def search_bm25(self, query: str, repo_ids: List[str], size: int,
                     source_fields: Optional[List[str]] = None, 
@@ -80,27 +56,6 @@ class SearchService:
         else:
             return bm25_filtered_query(query, repo_ids, size, source_fields)
     
-    def search_bm25_with_intent(self, query: str, repo_ids: List[str], size: int,
-                               source_fields: Optional[List[str]] = None) -> tuple[Dict[str, Any], bool]:
-        """Perform BM25 search with intent detection, returns (query_body, used_fetch_intent)"""
-        use_fetch_forecast = detect_fetch_forecast_intent(query)
-        
-        if use_fetch_forecast:
-            query_body = bm25_fetch_forecast(query, repo_ids, size, source_fields)
-        else:
-            # Topic detection for guarded retrieval
-            topic_terms = detect_topic_terms(query)
-            
-            if topic_terms:
-                query_body = bm25_v3_guarded(query, repo_ids, size, topic_terms, source_fields)
-            else:
-                # Prefer v3 BM25 if available
-                try:
-                    query_body = bm25_v3_query(query, repo_ids, size, source_fields)
-                except NameError:
-                    query_body = bm25_filtered_query(query, repo_ids, size, source_fields)
-        
-        return query_body, use_fetch_forecast
     
     def search_knn(self, query_vector: List[float], repo_ids: List[str],
                    index: str, k: int, num_candidates: int,

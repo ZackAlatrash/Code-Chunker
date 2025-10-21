@@ -369,39 +369,6 @@
             }
         }
 
-        /* Topic guard alert styles */
-        .topic-guard-message {
-            margin: 2rem;
-        }
-
-        .alert-box {
-            background: linear-gradient(135deg, #fef2f2 0%, #fde8e8 100%);
-            border: 2px solid #fca5a5;
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(252, 165, 165, 0.1);
-        }
-
-        .alert-box h3 {
-            color: #dc2626;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            font-weight: 600;
-        }
-
-        .alert-box p {
-            color: #7f1d1d;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-
-        .alert-box small {
-            color: #991b1b;
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
     </style>
 </head>
 <body>
@@ -440,15 +407,23 @@
                     <div class="setting-group">
                         <label for="routerVersion">Router Version</label>
                         <select id="routerVersion" title="Choose between different router strategies">
-                            <option value="v1">Router v1 (Default)</option>
-                            <option value="v2">Router v2 (Enhanced)</option>
+                            <option value="v1">Router v1</option>
+                            <option value="v2" selected>Router v2 (Enhanced) ⚡</option>
                         </select>
                     </div>
                     <div class="setting-group">
                         <label for="chunksVersion">Chunks Version</label>
                         <select id="chunksVersion" title="Choose between different chunk formats">
-                            <option value="v2">Chunks v2 (Default)</option>
+                            <option value="v2">Chunks v2</option>
                             <option value="v3">Chunks v3 (Symbol-aware)</option>
+                            <option value="v4" selected>Chunks v4 (Hybrid Search) ⚡</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="retrieverIndex">Retriever Index</label>
+                        <select id="retrieverIndex" title="Choose which index to search (embedding model)">
+                            <option value="">Default v4 (MiniLM)</option>
+                            <option value="code_chunks_v5_qodo">v5 Qodo (1536-dim)</option>
                         </select>
                     </div>
                     <div class="setting-group">
@@ -460,27 +435,21 @@
                         <input type="number" id="topRepos" value="2" min="1" max="10">
                     </div>
                     <div class="setting-group">
-                        <label for="disableTopicGuard">
-                            <input type="checkbox" id="disableTopicGuard" style="margin-right: 8px;">
-                            Disable Topic Guard 🛡️
+                        <label for="enableFilterRerank">
+                            <input type="checkbox" id="enableFilterRerank" style="margin-right: 8px;">
+                            LLM Filter + Rerank 🚀
                         </label>
                         <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
-                            Bypass topic-specific filtering and evidence gates
+                            🏠 100% Local: LLM filter (7B) + cross-encoder (BAAI bge-reranker-v2-m3)
                         </small>
                     </div>
                     <div class="setting-group">
-                        <label for="enableRerank">
-                            <input type="checkbox" id="enableRerank" style="margin-right: 8px;">
-                            Cross-encoder Reranking 🔄
-                        </label>
+                        <button id="compareBtn" style="padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; margin-top: 10px;">
+                            🔬 Compare: Standard vs Filter-Rerank
+                        </button>
                         <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
-                            Use neural reranker to improve result relevance
+                            Run both searches side-by-side to see the difference
                         </small>
-                    </div>
-                    <div class="setting-group">
-                        <label for="rerankSize">Rerank Pool Size</label>
-                        <input type="number" id="rerankSize" value="60" min="20" max="200" 
-                               title="Number of candidates to rerank">
                     </div>
                 </div>
         </div>
@@ -501,11 +470,10 @@
         const repoSelect = document.getElementById('repoSelect');
         const routerVersion = document.getElementById('routerVersion');
         const chunksVersion = document.getElementById('chunksVersion');
+        const retrieverIndex = document.getElementById('retrieverIndex');
         const numResults = document.getElementById('numResults');
         const topRepos = document.getElementById('topRepos');
-        const disableTopicGuard = document.getElementById('disableTopicGuard');
-        const enableRerank = document.getElementById('enableRerank');
-        const rerankSize = document.getElementById('rerankSize');
+        const enableFilterRerank = document.getElementById('enableFilterRerank');
         const resultsContainer = document.getElementById('resultsContainer');
 
         // Load repositories on page load
@@ -699,19 +667,6 @@
         function displayResults(data) {
             const { results, routed_repos, total_results, query, repo_guides, router_info, message } = data;
 
-            // Show topic guard message if present
-            if (message) {
-                resultsContainer.innerHTML = `
-                    <div class="topic-guard-message">
-                        <div class="alert-box">
-                            <h3>🚫 Topic Guard Active</h3>
-                            <p>${message}</p>
-                            <small>The search was constrained to look for specific topic terms, but insufficient evidence was found in the results.</small>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
 
             if (results.length === 0) {
                 resultsContainer.innerHTML = `
@@ -785,9 +740,9 @@
                     explicit_repo: repoSelect.value || null,
                     router_version: routerVersion.value,
                     chunks_version: chunksVersion.value,
-                    disable_topic_guard: disableTopicGuard.checked,
-                    rerank: enableRerank.checked,
-                    rerank_size: parseInt(rerankSize.value)
+                    use_filter_rerank: enableFilterRerank.checked,
+                    retriever_index: retrieverIndex.value || null,
+                    semantic_only: !!(retrieverIndex.value)
                 };
 
                 const response = await fetch(`${API_BASE_URL}/search`, {
@@ -813,8 +768,168 @@
             hideLoading();
         }
 
+        // Perform comparison search
+        async function performComparison(event) {
+            event.preventDefault();
+            
+            const query = queryInput.value.trim();
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                // Run both searches in parallel
+                const baseSearchData = {
+                    query: query,
+                    final_k: parseInt(numResults.value),
+                    top_repos: parseInt(topRepos.value),
+                    explicit_repo: repoSelect.value || null,
+                    router_version: routerVersion.value,
+                    chunks_version: chunksVersion.value,
+                    use_filter_rerank: false  // Standard search
+                };
+
+                const filterSearchData = {
+                    ...baseSearchData,
+                    use_filter_rerank: true  // Filter-rerank search
+                };
+
+                const [standardResponse, filterResponse] = await Promise.all([
+                    fetch(`${API_URL}/search`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(baseSearchData)
+                    }),
+                    fetch(`${API_URL}/search`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(filterSearchData)
+                    })
+                ]);
+
+                const standardData = await standardResponse.json();
+                const filterData = await filterResponse.json();
+
+                displayComparison(standardData, filterData, query);
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <h3>⚠️ Comparison failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+
+            hideLoading();
+        }
+
+        // Display comparison results side-by-side
+        function displayComparison(standardData, filterData, query) {
+            const standardResults = standardData.results || [];
+            const filterResults = filterData.results || [];
+
+            const comparisonHTML = `
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                    <h2 style="margin-bottom: 1rem;">🔬 Comparison Results for: "${query}"</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="background: white; padding: 1rem; border-radius: 6px; border-left: 4px solid #4CAF50;">
+                            <h3 style="color: #4CAF50; margin-bottom: 0.5rem;">📊 Standard Search</h3>
+                            <p style="font-size: 0.9em; color: #666;">Hybrid kNN + BM25 with RRF fusion</p>
+                            <p style="font-size: 1.2em; font-weight: bold; margin-top: 0.5rem;">${standardResults.length} results</p>
+                        </div>
+                        <div style="background: white; padding: 1rem; border-radius: 6px; border-left: 4px solid #ff6b6b;">
+                            <h3 style="color: #ff6b6b; margin-bottom: 0.5rem;">🚀 Filter-Rerank (Local)</h3>
+                            <p style="font-size: 0.9em; color: #666;">7B LLM filter + BAAI cross-encoder</p>
+                            <p style="font-size: 1.2em; font-weight: bold; margin-top: 0.5rem;">${filterResults.length} results</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h3 style="color: #4CAF50; margin-bottom: 1rem; padding: 0.5rem; background: #e8f5e9; border-radius: 6px;">
+                            📊 Standard Search Results
+                        </h3>
+                        ${standardResults.slice(0, 10).map((result, index) => `
+                            <div class="result-card" style="border-left: 4px solid #4CAF50;">
+                                <div class="result-header">
+                                    <span class="result-rank">#${index + 1}</span>
+                                    <span class="result-path">${result.rel_path || 'Unknown'}</span>
+                                </div>
+                                <div class="result-meta">
+                                    <span>📍 Lines ${result.start_line}-${result.end_line}</span>
+                                    <span>⚡ Score: ${(result.score || result._score || 0).toFixed(4)}</span>
+                                    ${result.primary_symbol ? `<span>🔹 ${result.primary_symbol}</span>` : ''}
+                                </div>
+                                ${result.summary_en ? `<div class="result-summary">${result.summary_en}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div>
+                        <h3 style="color: #ff6b6b; margin-bottom: 1rem; padding: 0.5rem; background: #ffebee; border-radius: 6px;">
+                            🚀 Filter-Rerank Results
+                        </h3>
+                        ${filterResults.slice(0, 10).map((result, index) => `
+                            <div class="result-card" style="border-left: 4px solid #ff6b6b;">
+                                <div class="result-header">
+                                    <span class="result-rank">#${index + 1}</span>
+                                    <span class="result-path">${result.rel_path || 'Unknown'}</span>
+                                </div>
+                                <div class="result-meta">
+                                    <span>📍 Lines ${result.start_line}-${result.end_line}</span>
+                                    <span>⚡ Score: ${(result.score || result._score || 0).toFixed(4)}</span>
+                                    ${result.filter_score ? `<span>🎯 Filter: ${result.filter_score}/4</span>` : ''}
+                                    ${result.primary_symbol ? `<span>🔹 ${result.primary_symbol}</span>` : ''}
+                                </div>
+                                ${result.filter_why ? `<div class="result-summary">💭 ${result.filter_why}</div>` : ''}
+                                ${result.summary_en ? `<div class="result-summary">${result.summary_en}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem; padding: 1rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <h4 style="color: #856404; margin-bottom: 0.5rem;">📊 Analysis</h4>
+                    ${analyzeComparison(standardResults, filterResults)}
+                </div>
+            `;
+
+            resultsContainer.innerHTML = comparisonHTML;
+        }
+
+        // Analyze differences between results
+        function analyzeComparison(standardResults, filterResults) {
+            const standardPaths = new Set(standardResults.map(r => r.rel_path));
+            const filterPaths = new Set(filterResults.map(r => r.rel_path));
+            
+            const onlyInStandard = [...standardPaths].filter(p => !filterPaths.has(p));
+            const onlyInFilter = [...filterPaths].filter(p => !standardPaths.has(p));
+            const common = [...standardPaths].filter(p => filterPaths.has(p));
+            
+            return `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 0.5rem;">
+                    <div>
+                        <strong style="color: #4CAF50;">Common files:</strong> ${common.length}
+                    </div>
+                    <div>
+                        <strong style="color: #2196F3;">Only in Standard:</strong> ${onlyInStandard.length}
+                        ${onlyInStandard.length > 0 ? `<ul style="margin-top: 0.5rem; font-size: 0.85em;">${onlyInStandard.slice(0, 3).map(p => `<li>${p}</li>`).join('')}</ul>` : ''}
+                    </div>
+                    <div>
+                        <strong style="color: #ff6b6b;">Only in Filter-Rerank:</strong> ${onlyInFilter.length}
+                        ${onlyInFilter.length > 0 ? `<ul style="margin-top: 0.5rem; font-size: 0.85em;">${onlyInFilter.slice(0, 3).map(p => `<li>${p}</li>`).join('')}</ul>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
         // Event listeners
         searchForm.addEventListener('submit', performSearch);
+        document.getElementById('compareBtn').addEventListener('click', performComparison);
         
         // Load repositories when page loads
         window.addEventListener('load', loadRepositories);

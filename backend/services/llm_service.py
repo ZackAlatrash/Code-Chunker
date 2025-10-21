@@ -82,7 +82,8 @@ class LLMService:
                        spotlight_count: int = 3,
                        topic_terms: List[str] = None,
                        max_sources: int = 12,
-                       include_repo_context: bool = False) -> str:
+                       include_repo_context: bool = False,
+                       disable_guards: bool = False) -> str:
         """Generate answer from retrieval bundle"""
         
         # Check for topic evidence gate failures
@@ -90,13 +91,16 @@ class LLMService:
         reason = bundle.get("reason", "")
         hits = bundle.get("sources", [])
 
-        if reason == "no_topic_evidence" or not hits:
-            return "Not found in provided sources."
-        
-        # Pre-LLM guards: Evidence-overlap and broad-topic checks
-        question = bundle.get("query", "").strip()
-        if looks_broad(question) and not evidence_overlap_ok(question, hits):
-            return "Not found in provided sources."
+        if not disable_guards:
+            if reason == "no_topic_evidence" or not hits:
+                return "Not found in provided sources."
+            
+            # Pre-LLM guards: Evidence-overlap and broad-topic checks
+            question = bundle.get("query", "").strip()
+            if looks_broad(question) and not evidence_overlap_ok(question, hits):
+                return "Not found in provided sources."
+        else:
+            print(f"DEBUG: 🔓 LLM guards DISABLED - bypassing all validation checks...")
         
         # Build and execute prompt
         prompt = self.build_qa_prompt(
@@ -109,8 +113,8 @@ class LLMService:
         )
         answer = self.call_llm(prompt, temperature)
         
-        # Use new validator
-        if not has_citation(answer) or not validate_answer(answer):
+        # Use new validator (only if guards are enabled)
+        if not disable_guards and (not has_citation(answer) or not validate_answer(answer)):
             return "Not found in provided sources."
         
         # Spotlight fallback if the model didn't include one

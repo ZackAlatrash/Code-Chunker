@@ -52,3 +52,10 @@ pydantic==2.5.0
 # Search and ML dependencies
 opensearch-py==2.4.2
 sentence-transformers==2.2.2
+# RAG Filter-Rerank dependencies
+python-dotenv==1.0.0
+pydantic-settings==2.1.0
+diskcache==5.6.3
+redis==5.0.1
+pytest==7.4.3
+pytest-mock==3.12.0

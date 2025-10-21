@@ -201,12 +201,55 @@ class CodeParser:
 
         return tree.root_node
 
+    def is_top_level_declaration(self, node: Node) -> bool:
+        """
+        Check if a node is a top-level declaration (not nested inside a function/method/struct).
+        
+        This prevents nested declarations from creating chunk boundaries:
+        - Types/functions nested inside functions
+        - Anonymous structs nested inside struct fields (Go)
+        - Nested classes/functions (Python, JS)
+        
+        Args:
+            node: Tree-sitter node to check
+            
+        Returns:
+            True if node is at top level (file/module scope), False if nested
+        """
+        parent = node.parent
+        while parent:
+            # If we find a function or method declaration in the parent chain,
+            # this node is nested inside it
+            if parent.type in [
+                'function_declaration',
+                'method_declaration',
+                'function_definition',  # Python
+                'arrow_function',       # JavaScript/TypeScript
+                'function_item',        # Rust
+            ]:
+                return False
+            
+            # If this is a struct/interface nested inside a field declaration,
+            # reject it (common in Go with anonymous struct fields)
+            if parent.type in ['field_declaration', 'field_declaration_list']:
+                return False
+            
+            # If this struct_type is nested inside another struct_type, reject it
+            # (handles deeply nested anonymous structs)
+            if node.type in ['struct_type', 'interface_type'] and parent.type in ['struct_type', 'interface_type']:
+                return False
+            
+            parent = parent.parent
+        return True
+
     def extract_points_of_interest(self, node: Node, file_extension: str) -> List[Tuple[Node, str]]:
         node_types_of_interest = self._get_node_types_of_interest(file_extension)
 
         points_of_interest = []
         if node.type in node_types_of_interest.keys():
-            points_of_interest.append((node, node_types_of_interest[node.type]))
+            # Only add as breakpoint if it's a top-level declaration
+            if self.is_top_level_declaration(node):
+                points_of_interest.append((node, node_types_of_interest[node.type]))
 
         for child in node.children:
             points_of_interest.extend(self.extract_points_of_interest(child, file_extension))

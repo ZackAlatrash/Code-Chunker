@@ -1,0 +1,318 @@
+#!/usr/bin/env python3
+"""
+Unit tests for Go heuristics: method/function detection and primary_symbol alignment.
+
+Tests cover:
+- Method detection with pointer + package receivers
+- Method detection with generics
+- Function detection with generics
+- Type aliases
+- Method body chunks (neighbor inference)
+- Unknown chunks
+"""
+
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+
+from nwe_v3_enrich.go_heuristics import (
+    detect_node_kind,
+    extract_signature_info,
+    find_enclosing_method_from_neighbors
+)
+from nwe_v3_enrich.adapter import infer_go_structure, FileContext
+
+
+def test_method_with_pointer_and_package():
+    """Test: Method with pointer + package receiver."""
+    code = '''
+package foreca
+
+func (s *pkg.Service) Do(ctx context.Context) error {
+    return nil
+}
+'''
+    
+    node_kind = detect_node_kind(code)
+    sig_info = extract_signature_info(code)
+    
+    print("Test: Method with pointer + package")
+    print(f"  node_kind: {node_kind}")
+    print(f"  sig_info: {sig_info}")
+    
+    assert node_kind == "method", f"Expected 'method', got '{node_kind}'"
+    assert sig_info["method_name"] == "Do", f"Expected method_name='Do', got '{sig_info['method_name']}'"
+    assert sig_info["type_name"] == "Service", f"Expected type_name='Service', got '{sig_info['type_name']}'"
+    assert "*pkg.Service" in sig_info["receiver"], f"Expected receiver to contain '*pkg.Service', got '{sig_info['receiver']}'"
+    
+    # Test full structure
+    struct = infer_go_structure(code)
+    print(f"  ast_path: {struct['ast_path']}")
+    print(f"  primary_symbol: {struct['primary_symbol']}")
+    
+    assert struct["primary_symbol"] == "Do", f"Expected primary_symbol='Do', got '{struct['primary_symbol']}'"
+    assert "(*Service).Do" in struct["ast_path"], f"Expected ast_path to contain '(*Service).Do', got '{struct['ast_path']}'"
+    
+    print("  ✓ Passed\n")
+
+
+def test_method_with_generics():
+    """Test: Method with generics."""
+    code = '''
+package service
+
+func (s *Service) Do[T any](v T) error {
+    return nil
+}
+'''
+    
+    node_kind = detect_node_kind(code)
+    sig_info = extract_signature_info(code)
+    
+    print("Test: Method with generics")
+    print(f"  node_kind: {node_kind}")
+    print(f"  sig_info: {sig_info}")
+    
+    assert node_kind == "method", f"Expected 'method', got '{node_kind}'"
+    assert sig_info["method_name"] == "Do", f"Expected method_name='Do', got '{sig_info['method_name']}'"
+    assert sig_info["type_name"] == "Service", f"Expected type_name='Service', got '{sig_info['type_name']}'"
+    
+    # Test full structure
+    struct = infer_go_structure(code)
+    print(f"  ast_path: {struct['ast_path']}")
+    print(f"  primary_symbol: {struct['primary_symbol']}")
+    
+    assert struct["primary_symbol"] == "Do", f"Expected primary_symbol='Do', got '{struct['primary_symbol']}'"
+    assert "(*Service).Do" in struct["ast_path"], f"Expected ast_path to contain '(*Service).Do', got '{struct['ast_path']}'"
+    
+    print("  ✓ Passed\n")
+
+
+def test_function_with_generics():
+    """Test: Function with generics."""
+    code = '''
+package util
+
+func Map[T any](v T) T {
+    return v
+}
+'''
+    
+    node_kind = detect_node_kind(code)
+    sig_info = extract_signature_info(code)
+    
+    print("Test: Function with generics")
+    print(f"  node_kind: {node_kind}")
+    print(f"  sig_info: {sig_info}")
+    
+    assert node_kind == "function", f"Expected 'function', got '{node_kind}'"
+    assert sig_info["function_name"] == "Map", f"Expected function_name='Map', got '{sig_info['function_name']}'"
+    
+    # Test full structure
+    struct = infer_go_structure(code)
+    print(f"  ast_path: {struct['ast_path']}")
+    print(f"  primary_symbol: {struct['primary_symbol']}")
+    
+    assert struct["primary_symbol"] == "Map", f"Expected primary_symbol='Map', got '{struct['primary_symbol']}'"
+    assert struct["ast_path"] == "go:function:Map", f"Expected ast_path='go:function:Map', got '{struct['ast_path']}'"
+    
+    print("  ✓ Passed\n")
+
+
+def test_type_alias():
+    """Test: Type alias."""
+    code = '''
+package types
+
+type ID = string
+'''
+    
+    node_kind = detect_node_kind(code)
+    sig_info = extract_signature_info(code)
+    
+    print("Test: Type alias")
+    print(f"  node_kind: {node_kind}")
+    print(f"  sig_info: {sig_info}")
+    
+    assert node_kind == "type", f"Expected 'type', got '{node_kind}'"
+    assert sig_info["type_name"] == "ID", f"Expected type_name='ID', got '{sig_info['type_name']}'"
+    assert sig_info["type_kind"] == "alias", f"Expected type_kind='alias', got '{sig_info['type_kind']}'"
+    
+    # Test full structure
+    struct = infer_go_structure(code)
+    print(f"  ast_path: {struct['ast_path']}")
+    print(f"  primary_symbol: {struct['primary_symbol']}")
+    
+    assert struct["primary_symbol"] == "ID", f"Expected primary_symbol='ID', got '{struct['primary_symbol']}'"
+    assert struct["ast_path"] == "go:type:ID (alias)", f"Expected ast_path='go:type:ID (alias)', got '{struct['ast_path']}'"
+    
+    print("  ✓ Passed\n")
+
+
+def test_method_body_with_neighbors():
+    """Test: Method body chunk with neighbor inference."""
+    # Create chunks simulating a method signature followed by body chunks
+    chunks = [
+        {
+            "text": '''func (s *Service) GetForecastForLocation(ctx context.Context, locationID int) (*ForecastResponse, error) {''',
+            "chunk_number": 1
+        },
+        {
+            "text": '''    // only body lines...
+    span.SetAttributes(...)
+    return result, nil
+}''',
+            "chunk_number": 2
+        }
+    ]
+    
+    # First chunk should detect method signature
+    struct1 = infer_go_structure(chunks[0]["text"], chunks=chunks, current_index=0)
+    print("Test: Method body with neighbors")
+    print(f"  Chunk 1 (signature):")
+    print(f"    node_kind: {struct1['node_kind']}")
+    print(f"    primary_symbol: {struct1['primary_symbol']}")
+    
+    assert struct1["node_kind"] == "method", f"Expected 'method', got '{struct1['node_kind']}'"
+    assert struct1["primary_symbol"] == "GetForecastForLocation", f"Expected primary_symbol='GetForecastForLocation', got '{struct1['primary_symbol']}'"
+    
+    # Second chunk should be unknown initially, but neighbor inference should find method
+    node_kind2 = detect_node_kind(chunks[1]["text"])
+    print(f"  Chunk 2 (body) node_kind before inference: {node_kind2}")
+    assert node_kind2 == "unknown", f"Expected 'unknown' for body chunk, got '{node_kind2}'"
+    
+    struct2 = infer_go_structure(chunks[1]["text"], chunks=chunks, current_index=1)
+    print(f"  Chunk 2 (body) after neighbor inference:")
+    print(f"    node_kind: {struct2['node_kind']}")
+    print(f"    primary_symbol: {struct2['primary_symbol']}")
+    print(f"    method_name: {struct2['method_name']}")
+    
+    assert struct2["node_kind"] == "method", f"Expected 'method', got '{struct2['node_kind']}'"
+    assert struct2["primary_symbol"] == "GetForecastForLocation", f"Expected primary_symbol='GetForecastForLocation', got '{struct2['primary_symbol']}'"
+    
+    print("  ✓ Passed\n")
+
+
+def test_unknown_chunk():
+    """Test: Unknown chunk (no signature, no neighbors)."""
+    code = '''
+    // only body lines...
+    span.SetAttributes(...)
+    return result, nil
+'''
+    
+    node_kind = detect_node_kind(code)
+    sig_info = extract_signature_info(code)
+    
+    print("Test: Unknown chunk")
+    print(f"  node_kind: {node_kind}")
+    print(f"  sig_info: {sig_info}")
+    
+    assert node_kind == "unknown", f"Expected 'unknown', got '{node_kind}'"
+    
+    # Test full structure without neighbors
+    struct = infer_go_structure(code)
+    print(f"  ast_path: {struct['ast_path']}")
+    print(f"  primary_symbol: {struct['primary_symbol']}")
+    
+    assert struct["primary_symbol"] == "", f"Expected empty primary_symbol, got '{struct['primary_symbol']}'"
+    assert struct["ast_path"] == "go:block", f"Expected ast_path='go:block', got '{struct['ast_path']}'"
+    
+    print("  ✓ Passed\n")
+
+
+def test_function_newservice():
+    """Test: NewService function (common Go pattern)."""
+    code = '''
+package foreca
+
+func NewService(provider providerClient, mappings mappingsRepository, cache cacheClient) *Service {
+    return &Service{
+        provider: provider,
+        mappings: mappings,
+        cache:    cache,
+    }
+}
+'''
+    
+    node_kind = detect_node_kind(code)
+    sig_info = extract_signature_info(code)
+    
+    print("Test: NewService function")
+    print(f"  node_kind: {node_kind}")
+    print(f"  sig_info: {sig_info}")
+    
+    assert node_kind == "function", f"Expected 'function', got '{node_kind}'"
+    assert sig_info["function_name"] == "NewService", f"Expected function_name='NewService', got '{sig_info['function_name']}'"
+    
+    # Test full structure
+    struct = infer_go_structure(code)
+    print(f"  ast_path: {struct['ast_path']}")
+    print(f"  primary_symbol: {struct['primary_symbol']}")
+    
+    assert struct["primary_symbol"] == "NewService", f"Expected primary_symbol='NewService', got '{struct['primary_symbol']}'"
+    assert struct["ast_path"] == "go:function:NewService", f"Expected ast_path='go:function:NewService', got '{struct['ast_path']}'"
+    
+    print("  ✓ Passed\n")
+
+
+def test_struct_type():
+    """Test: Struct type definition."""
+    code = '''
+package foreca
+
+type Service struct {
+    provider providerClient
+    mappings mappingsRepository
+    cache    cacheClient
+}
+'''
+    
+    node_kind = detect_node_kind(code)
+    sig_info = extract_signature_info(code)
+    
+    print("Test: Struct type")
+    print(f"  node_kind: {node_kind}")
+    print(f"  sig_info: {sig_info}")
+    
+    assert node_kind == "type", f"Expected 'type', got '{node_kind}'"
+    assert sig_info["type_name"] == "Service", f"Expected type_name='Service', got '{sig_info['type_name']}'"
+    assert sig_info["type_kind"] == "struct", f"Expected type_kind='struct', got '{sig_info['type_kind']}'"
+    
+    # Test full structure
+    struct = infer_go_structure(code)
+    print(f"  ast_path: {struct['ast_path']}")
+    print(f"  primary_symbol: {struct['primary_symbol']}")
+    
+    assert struct["primary_symbol"] == "Service", f"Expected primary_symbol='Service', got '{struct['primary_symbol']}'"
+    assert struct["ast_path"] == "go:type:Service (struct)", f"Expected ast_path='go:type:Service (struct)', got '{struct['ast_path']}'"
+    
+    print("  ✓ Passed\n")
+
+
+def main():
+    """Run all tests."""
+    print("Running Go heuristics tests...\n")
+    
+    try:
+        test_method_with_pointer_and_package()
+        test_method_with_generics()
+        test_function_with_generics()
+        test_type_alias()
+        test_method_body_with_neighbors()
+        test_unknown_chunk()
+        test_function_newservice()
+        test_struct_type()
+        
+        print("🎉 All Go heuristics tests passed!")
+        
+    except Exception as e:
+        print(f"❌ Test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+

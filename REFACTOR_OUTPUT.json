@@ -1,0 +1,88 @@
+{
+  "refactor_completed": true,
+  "date": "2025-10-09",
+  "summary": "Removed all regex-based Go structure detection and replaced with Tree-sitter AST parsing",
+  "files_modified": [
+    {
+      "file": "src/nwe_v3_enrich/go_heuristics.py",
+      "removed": [
+        "detect_node_kind(code: str)",
+        "extract_signature_info(code: str)",
+        "is_method_signature_chunk(code: str)",
+        "is_type_definition_chunk(code: str)",
+        "is_file_header_chunk(code: str)",
+        "find_method(code: str)",
+        "find_function(code: str)",
+        "find_type(code: str)",
+        "extract_method_receiver_and_name(code: str)",
+        "find_enclosing_method_from_neighbors(chunks, index)",
+        "METHOD_PATTERN",
+        "FUNCTION_PATTERN",
+        "TYPE_PATTERN"
+      ],
+      "replaced_with": "Tree-sitter call via GoTSIndexer.locate_for_chunk()"
+    },
+    {
+      "file": "src/nwe_v3_enrich/adapter.py",
+      "removed": [
+        "Regex fallback in infer_go_structure()",
+        "Neighbor inference logic",
+        "Manual AST path construction"
+      ],
+      "replaced_with": "Direct call to infer_go_structure_ts() using Tree-sitter"
+    },
+    {
+      "file": "src/nwe_v3_enrich/__init__.py",
+      "removed": [
+        "find_method",
+        "find_function",
+        "find_type",
+        "extract_method_receiver_and_name",
+        "find_enclosing_method_from_neighbors",
+        "is_method_signature_chunk",
+        "is_type_definition_chunk",
+        "is_file_header_chunk",
+        "extract_enclosing_method_signature",
+        "infer_method_from_neighbors"
+      ],
+      "replaced_with": "Tree-sitter exports (GoTSIndexer, TSFileIndex, HAS_TREESITTER)"
+    },
+    {
+      "file": "src/nwe_v3_enrich/treesitter_go.py",
+      "status": "NEW",
+      "removed": [],
+      "replaced_with": "Complete AST-based detection system (484 lines)"
+    },
+    {
+      "file": "nwe_chunks_v3.py",
+      "removed": [],
+      "replaced_with": "None - only wiring changes (added byte offsets)"
+    },
+    {
+      "file": "tests/test_go_heuristics.py",
+      "status": "DEPRECATED",
+      "removed": ["Entire file (regex tests)"],
+      "replaced_with": "tests/enrich/test_go_detection.py (Tree-sitter tests)"
+    },
+    {
+      "file": "tests/enrich/test_go_detection.py",
+      "status": "NEW",
+      "removed": [],
+      "replaced_with": "7 comprehensive Tree-sitter tests"
+    }
+  ],
+  "verification": {
+    "tests_passing": true,
+    "regex_detection_removed": true,
+    "treesitter_working": true,
+    "acceptance_criteria_met": true
+  },
+  "remaining_regex": {
+    "note": "Only for symbol extraction, NOT structure detection",
+    "patterns": [
+      "PACKAGE_PATTERN (fallback)",
+      "QUALIFIED_IDENT_PATTERN (symbol names)",
+      "CAPITALIZED_IDENT_PATTERN (symbol names)"
+    ]
+  }
+}
